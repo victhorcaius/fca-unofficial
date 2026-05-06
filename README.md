@@ -1,229 +1,198 @@
 # Unofficial Facebook Chat API
-<a href="https://www.npmjs.com/package/fca-unofficial"><img alt="npm version" src="https://img.shields.io/npm/v/fca-unofficial.svg?style=flat-square"></a>
-<img alt="version" src="https://img.shields.io/github/package-json/v/VangBanLaNhat/fca-unofficial?label=github&style=flat-square">
-<a href="https://www.npmjs.com/package/fca-unofficial"><img src="https://img.shields.io/npm/dm/fca-unofficial.svg?style=flat-square" alt="npm downloads"></a>
-[![code style: prettier](https://img.shields.io/badge/code_style-prettier-ff69b4.svg?style=flat-square)](https://github.com/prettier/prettier)
 
-Facebook now has an official API for chat bots [here](https://developers.facebook.com/docs/messenger-platform).
+<div align="center">
+  <a href="https://www.npmjs.com/package/fca-unofficial"><img alt="npm version" src="https://img.shields.io/npm/v/fca-unofficial.svg?style=flat-square"></a>
+  <img alt="version" src="https://img.shields.io/github/package-json/v/VangBanLaNhat/fca-unofficial?label=github&style=flat-square">
+  <a href="https://www.npmjs.com/package/fca-unofficial"><img src="https://img.shields.io/npm/dm/fca-unofficial.svg?style=flat-square" alt="npm downloads"></a>
+  <a href="https://github.com/prettier/prettier"><img alt="code style: prettier" src="https://img.shields.io/badge/code_style-prettier-ff69b4.svg?style=flat-square"></a>
+</div>
 
-This API is the only way to automate chat functionalities on a user account. We do this by emulating the browser. This means doing the exact same GET/POST requests and tricking Facebook into thinking we're accessing the website normally. Because we're doing it this way, this API won't work with an auth token but requires the credentials of a Facebook account.
+This project provides an unofficial API for automating Facebook chat and Messenger functionalities. Facebook has deprecated their XMPP chat interface, leaving emulating a browser as the only viable method for account automation. 
 
-_Disclaimer_: We are not responsible if your account gets banned for spammy activities such as sending lots of messages to people you don't know, sending messages very quickly, sending spammy looking URLs, logging in and out very quickly... Be responsible Facebook citizens.
+This API simulates exact GET/POST requests and MQTT connections, tricking Facebook into thinking it's a legitimate browser session.
 
-See [below](#projects-using-this-api) for projects using this API.
+> **Disclaimer:** We are not responsible if your account gets banned for spammy activities (sending messages too quickly, spamming strangers, logging in/out rapidly). Be a responsible Facebook citizen. Use [Facebook Whitehat Accounts](https://www.facebook.com/whitehat/accounts/) for safe testing.
 
-See the [full changelog](/CHANGELOG.md) for release details.
+---
 
-## Install
-If you just want to use fca-unofficial, you should use this command:
+## Documentation
+
+For a comprehensive list of all available API methods, options, and parameters, please see the **[Full API Documentation (DOCS.md)](DOCS.md)**.
+
+## Tech Stack
+
+- **Language**: JavaScript (Node.js)
+- **Real-time Protocol**: MQTT (`mqtt` package)
+- **HTML Parsing**: `cheerio`
+- **Networking**: Built-in HTTP/HTTPS + `https-proxy-agent`
+- **Testing Framework**: Jest
+
+## Prerequisites
+
+- **Node.js**: v14.0.0 or higher
+- **NPM or Yarn**: To install dependencies
+- A valid Facebook account or a Facebook Whitehat Account for testing.
+
+## Getting Started
+
+### 1. Installation
+
+Install the package via NPM:
+
 ```bash
-npm install fca-unofficial
-```
-It will download `fca-unofficial` from NPM repositories
-
-### Bleeding edge
-If you want to use bleeding edge (directly from github) to test new features or submit bug report, this is the command for you:
-```bash
-npm install VangBanLaNhat/fca-unofficial
+npm install @VangBanLaNhat/fca-unofficial
 ```
 
-## Testing your bots
-If you want to test your bots without creating another account on Facebook, you can use [Facebook Whitehat Accounts](https://www.facebook.com/whitehat/accounts/).
+### 2. Basic Echo Bot Example
 
-## Example Usage
+Create an `index.js` file and add the following code to create a bot that echoes messages back to the sender:
+
 ```javascript
-const login = require("fca-unofficial");
+const login = require("@VangBanLaNhat/fca-unofficial");
 
-// Create simple echo bot
+// Login using your Facebook credentials
 login({email: "FB_EMAIL", password: "FB_PASSWORD"}, (err, api) => {
-    if(err) return console.error(err);
+    if(err) return console.error("Login failed:", err);
 
+    console.log("Bot successfully logged in!");
+
+    // Start listening for incoming messages
     api.listen((err, message) => {
-        api.sendMessage(message.body, message.threadID);
+        if(err) return console.error(err);
+
+        // Echo the message back to the same chat thread
+        api.sendMessage("Echo: " + message.body, message.threadID);
     });
 });
 ```
 
-Result:
-
-<img width="517" alt="screen shot 2016-11-04 at 14 36 00" src="https://cloud.githubusercontent.com/assets/4534692/20023545/f8c24130-a29d-11e6-9ef7-47568bdbc1f2.png">
-
-
-## Documentation
-
-You can see it [here](DOCS.md).
-
-## Main Functionality
-
-### Sending a message
-#### api.sendMessage(message, threadID[, callback][, messageID])
-
-Various types of message can be sent:
-* *Regular:* set field `body` to the desired message as a string.
-* *Sticker:* set a field `sticker` to the desired sticker ID.
-* *File or image:* Set field `attachment` to a readable stream or an array of readable streams.
-* *URL:* set a field `url` to the desired URL.
-* *Emoji:* set field `emoji` to the desired emoji as a string and set field `emojiSize` with size of the emoji (`small`, `medium`, `large`)
-
-Note that a message can only be a regular message (which can be empty) and optionally one of the following: a sticker, an attachment or a url.
-
-__Tip__: to find your own ID, you can look inside the cookies. The `userID` is under the name `c_user`.
-
-__Example (Basic Message)__
-```js
-const login = require("fca-unofficial");
-
-login({email: "FB_EMAIL", password: "FB_PASSWORD"}, (err, api) => {
-    if(err) return console.error(err);
-
-    var yourID = "000000000000000";
-    var msg = "Hey!";
-    api.sendMessage(msg, yourID);
-});
+Run your bot:
+```bash
+node index.js
 ```
 
-__Example (File upload)__
-```js
-const login = require("fca-unofficial");
+### 3. Saving the Session (Avoiding Bans & Re-logins)
 
-login({email: "FB_EMAIL", password: "FB_PASSWORD"}, (err, api) => {
-    if(err) return console.error(err);
+Logging in repeatedly with an email and password is a massive red flag for Facebook's anti-spam systems. **You must save and reuse your session (AppState).**
 
-    // Note this example uploads an image called image.jpg
-    var yourID = "000000000000000";
-    var msg = {
-        body: "Hey!",
-        attachment: fs.createReadStream(__dirname + '/image.jpg')
-    }
-    api.sendMessage(msg, yourID);
-});
-```
-
-------------------------------------
-### Saving session.
-
-To avoid logging in every time you should save AppState (cookies etc.) to a file, then you can use it without having password in your scripts.
-
-__Example__
-
-```js
+```javascript
 const fs = require("fs");
-const login = require("fca-unofficial");
+const login = require("@VangBanLaNhat/fca-unofficial");
 
-var credentials = {email: "FB_EMAIL", password: "FB_PASSWORD"};
+// 1. Try to load an existing session
+let appState = null;
+try {
+    appState = JSON.parse(fs.readFileSync('appstate.json', 'utf8'));
+} catch (e) {
+    console.log("No saved session found. Logging in with credentials...");
+}
+
+const credentials = appState 
+    ? { appState: appState } 
+    : { email: "FB_EMAIL", password: "FB_PASSWORD" };
 
 login(credentials, (err, api) => {
     if(err) return console.error(err);
 
+    // 2. Save the session for the next run
     fs.writeFileSync('appstate.json', JSON.stringify(api.getAppState()));
+    console.log("Logged in and session saved!");
+
+    // ... continue with your bot logic ...
 });
 ```
 
-Alternative: Use [c3c-fbstate](https://github.com/lequanglam/c3c-fbstate) to get fbstate.json (appstate.json)
+*Alternative:* You can use browser extensions like [c3c-fbstate](https://github.com/lequanglam/c3c-fbstate) to manually extract your `fbstate.json` (appstate) directly from your browser.
 
-------------------------------------
+## Architecture Overview
 
-### Listening to a chat
-#### api.listen(callback)
+This library essentially functions as a headless Facebook web client.
 
-Listen watches for messages sent in a chat. By default this won't receive events (joining/leaving a chat, title change etc…) but it can be activated with `api.setOptions({listenEvents: true})`. This will by default ignore messages sent by the current account, you can enable listening to your own messages with `api.setOptions({selfListen: true})`.
+### Request Lifecycle
+1. **Login:** The library performs a sequence of GET/POST requests to Facebook's login endpoints, mimicking a real browser login to acquire authentication cookies (`c_user`, `xs`, etc.).
+2. **Context Creation:** It builds an internal `ctx` (context) object containing your User ID, Client ID, and cookies.
+3. **MQTT Connection:** It establishes an MQTT over WebSockets connection to Facebook's servers to receive real-time events (new messages, typing indicators, read receipts).
+4. **Action Execution:** When you call an API method (like `sendMessage`), the library constructs the exact GraphQL or form-data HTTP request that the Messenger web app would send, and dispatches it.
 
-__Example__
+### Core Directory Structure
 
-```js
-const fs = require("fs");
-const login = require("fca-unofficial");
+```text
+src/
+├── index.js          # Main entrypoint and API builder
+├── controllers/      # Contains all the individual API methods
+│   ├── listenMqtt.js # Manages the real-time MQTT socket
+│   ├── sendMessage.js# Handles message formatting and sending
+│   └── ...           # Other actions (reactions, unsending, etc.)
+└── utils/            # Shared utilities
+    ├── auth.js       # Cookie formatting and session extraction
+    ├── base.js       # Core network request wrappers (get, post)
+    ├── formatters.js # Parsers that turn raw FB payloads into clean JSON
+    └── identity.js   # Generators for IDs, GUIDs, and timestamps
+```
 
-// Simple echo bot. It will repeat everything that you say.
-// Will stop when you say '/stop'
-login({appState: JSON.parse(fs.readFileSync('appstate.json', 'utf8'))}, (err, api) => {
-    if(err) return console.error(err);
+## Available Scripts
 
-    api.setOptions({listenEvents: true});
+| Command | Description |
+| --- | --- |
+| `npm run test` | Runs the full Jest test suite |
+| `npm run test:unit` | Runs only unit tests |
+| `npm run test:integration`| Runs integration tests (requires active config) |
+| `npm run lint` | Runs ESLint to check for syntax/style issues |
+| `npm run prettier` | Formats all code using Prettier |
 
-    var stopListening = api.listenMqtt((err, event) => {
-        if(err) return console.error(err);
+## Testing
 
-        api.markAsRead(event.threadID, (err) => {
-            if(err) console.error(err);
-        });
+The project uses **Jest** for unit and integration testing.
 
-        switch(event.type) {
-            case "message":
-                if(event.body === '/stop') {
-                    api.sendMessage("Goodbye…", event.threadID);
-                    return stopListening();
-                }
-                api.sendMessage("TEST BOT: " + event.body, event.threadID);
-                break;
-            case "event":
-                console.log(event);
-                break;
-        }
-    });
+To run the unit tests:
+```bash
+npm run test:unit
+```
+
+To run integration tests (which actually hit Facebook endpoints), you must first create a valid config:
+1. Copy `example-config.json` to `test-config.json` inside the `test` directory.
+2. Fill in your test account credentials or appState.
+3. Run: `npm run test:integration`
+
+## Deployment
+
+Since this is a standard Node.js application, you can deploy your bot anywhere Node.js runs (VPS, Heroku, Render, AWS, Docker).
+
+**Important Deployment Tips:**
+1. **Do not commit `appstate.json` or passwords to Git.** Use environment variables for sensitive data.
+2. **IP Changes:** If you deploy your bot to a cloud server in a different country, Facebook might temporarily lock the account due to a "Suspicious Login". You may need to log into the account manually and approve the new location.
+
+## Troubleshooting
+
+### 1. "Login failed" or getting prompted for a code
+If you have Two-Factor Authentication (2FA) or Login Approvals enabled, you must handle the approval step. Read the specific guide on [handling login approvals](DOCS.md#login).
+
+### 2. My account got locked/banned!
+This happens if you send messages too fast or to people who are not your friends. 
+- Use `setTimeout` to add human-like delays.
+- Always use cached sessions (`appState`) instead of logging in repeatedly.
+- Use a throwaway account for development.
+
+### 3. `sendMessage` isn't working when logged in as a Page
+Facebook Pages cannot initiate conversations with users to prevent spam. Your bot can only reply to users who have messaged the Page first within the last 24 hours.
+
+### 4. How do I stop the spammy console logs?
+Pass a `logLevel` option when configuring the API:
+```javascript
+api.setOptions({
+    logLevel: "silent" // Options: "silly", "verbose", "info", "warn", "error", "silent"
 });
 ```
 
-------------------------------------
+---
 
-## FAQS
-
-1. How do I run tests?
-> For tests, create a `test-config.json` file that resembles `example-config.json` and put it in the `test` directory. From the root >directory, run `npm test`.
-
-2. Why doesn't `sendMessage` always work when I'm logged in as a page?
-> Pages can't start conversations with users directly; this is to prevent pages from spamming users.
-
-3. What do I do when `login` doesn't work?
-> First check that you can login to Facebook using the website. If login approvals are enabled, you might be logging in incorrectly. For how to handle login approvals, read our docs on [`login`](DOCS.md#login).
-
-4. How can I avoid logging in every time?  Can I log into a previous session?
-> We support caching everything relevant for you to bypass login. `api.getAppState()` returns an object that you can save and pass into login as `{appState: mySavedAppState}` instead of the credentials object.  If this fails, your session has expired.
-
-5. Do you support sending messages as a page?
-> Yes, set the pageID option on login (this doesn't work if you set it using api.setOptions, it affects the login process).
-> ```js
-> login(credentials, {pageID: "000000000000000"}, (err, api) => { … }
-> ```
-
-6. I'm getting some crazy weird syntax error like `SyntaxError: Unexpected token [`!!!
-> Please try to update your version of node.js before submitting an issue of this nature.  We like to use new language features.
-
-7. I don't want all of these logging messages!
-> You can use `api.setOptions` to silence the logging. You get the `api` object from `login` (see example above). Do
-> ```js
-> api.setOptions({
->     logLevel: "silent"
-> });
-> ```
-
-
-
-<a name="projects-using-this-api"></a>
-## Projects using this API:
+## Projects using this API
 
 - [c3c](https://github.com/lequanglam/c3c) - A bot that can be customizable using plugins. Support Facebook & Discord.
 
-## Projects using this API (original repository, facebook-chat-api):
-
+**Historical Projects (from the original `facebook-chat-api`):**
 - [Messer](https://github.com/mjkaufer/Messer) - Command-line messaging for Facebook Messenger
 - [messen](https://github.com/tomquirk/messen) - Rapidly build Facebook Messenger apps in Node.js
-- [Concierge](https://github.com/concierge/Concierge) - Concierge is a highly modular, easily extensible general purpose chat bot with a built in package manager
-- [Marc Zuckerbot](https://github.com/bsansouci/marc-zuckerbot) - Facebook chat bot
-- [Marc Thuckerbot](https://github.com/bsansouci/lisp-bot) - Programmable lisp bot
-- [MarkovsInequality](https://github.com/logicx24/MarkovsInequality) - Extensible chat bot adding useful functions to Facebook Messenger
-- [AllanBot](https://github.com/AllanWang/AllanBot-Public) - Extensive module that combines the facebook api with firebase to create numerous functions; no coding experience is required to implement this.
-- [Larry Pudding Dog Bot](https://github.com/Larry850806/facebook-chat-bot) - A facebook bot you can easily customize the response
-- [fbash](https://github.com/avikj/fbash) - Run commands on your computer's terminal over Facebook Messenger
-- [Klink](https://github.com/KeNt178/klink) - This Chrome extension will 1-click share the link of your active tab over Facebook Messenger
-- [Botyo](https://github.com/ivkos/botyo) - Modular bot designed for group chat rooms on Facebook
-- [matrix-puppet-facebook](https://github.com/matrix-hacks/matrix-puppet-facebook) - A facebook bridge for [matrix](https://matrix.org)
-- [facebot](https://github.com/Weetbix/facebot) - A facebook bridge for Slack.
+- [Concierge](https://github.com/concierge/Concierge) - Modular chat bot with a package manager
 - [Botium](https://github.com/codeforequity-at/botium-core) - The Selenium for Chatbots
-- [Messenger-CLI](https://github.com/AstroCB/Messenger-CLI) - A command-line interface for sending and receiving messages through Facebook Messenger.
-- [AssumeZero-Bot](https://github.com/AstroCB/AssumeZero-Bot) – A highly customizable Facebook Messenger bot for group chats.
-- [Miscord](https://github.com/Bjornskjald/miscord) - An easy-to-use Facebook bridge for Discord.
-- [chat-bridge](https://github.com/rexx0520/chat-bridge) - A Messenger, Telegram and IRC chat bridge.
-- [messenger-auto-reply](https://gitlab.com/theSander/messenger-auto-reply) - An auto-reply service for Messenger.
-- [BotCore](https://github.com/AstroCB/BotCore) – A collection of tools for writing and managing Facebook Messenger bots.
-- [mnotify](https://github.com/AstroCB/mnotify) – A command-line utility for sending alerts and notifications through Facebook Messenger.
+- [Miscord](https://github.com/Bjornskjald/miscord) - Facebook bridge for Discord.

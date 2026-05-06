@@ -125,7 +125,7 @@ __Arguments__
 __Example (Email & Password)__
 
 ```js
-const login = require("fca-unofficial");
+const login = require("@VangBanLaNhat/fca-unofficial");
 
 login({email: "FB_EMAIL", password: "FB_PASSWORD"}, (err, api) => {
     if(err) return console.error(err);
@@ -137,7 +137,7 @@ __Example (Email & Password then save appState to file)__
 
 ```js
 const fs = require("fs");
-const login = require("fca-unofficial");
+const login = require("@VangBanLaNhat/fca-unofficial");
 
 login({email: "FB_EMAIL", password: "FB_PASSWORD"}, (err, api) => {
     if(err) return console.error(err);
@@ -150,7 +150,7 @@ __Example (AppState loaded from file)__
 
 ```js
 const fs = require("fs");
-const login = require("fca-unofficial");
+const login = require("@VangBanLaNhat/fca-unofficial");
 
 login({appState: JSON.parse(fs.readFileSync('appstate.json', 'utf8'))}, (err, api) => {
     if(err) return console.error(err);
@@ -164,7 +164,7 @@ __Example__:
 
 ```js
 const fs = require("fs");
-const login = require("fca-unofficial");
+const login = require("@VangBanLaNhat/fca-unofficial");
 const readline = require("readline");
 
 var rl = readline.createInterface({
@@ -255,7 +255,7 @@ __Example__
 
 ```js
 const fs = require("fs");
-const login = require("fca-unofficial");
+const login = require("@VangBanLaNhat/fca-unofficial");
 
 login({appState: JSON.parse(fs.readFileSync('appstate.json', 'utf8'))}, (err, api) => {
     if (err) return console.error(err);
@@ -291,7 +291,7 @@ __Example__
 
 ```js
 const fs = require("fs");
-const login = require("fca-unofficial");
+const login = require("@VangBanLaNhat/fca-unofficial");
 
 login({appState: JSON.parse(fs.readFileSync('appstate.json', 'utf8'))}, (err, api) => {
     if(err) return console.error(err);
@@ -346,7 +346,7 @@ __Example__
 
 ```js
 const fs = require("fs");
-const login = require("fca-unofficial");
+const login = require("@VangBanLaNhat/fca-unofficial");
 
 login({appState: JSON.parse(fs.readFileSync('appstate.json', 'utf8'))}, (err, api) => {
     if(err) return console.error(err);
@@ -374,7 +374,7 @@ __Example__
 
 ```js
 const fs = require("fs");
-const login = require("fca-unofficial");
+const login = require("@VangBanLaNhat/fca-unofficial");
 
 login({appState: JSON.parse(fs.readFileSync('appstate.json', 'utf8'))}, (err, api) => {
     if(err) return console.error(err);
@@ -404,7 +404,7 @@ __Example__
 
 ```js
 const fs = require("fs");
-const login = require("fca-unofficial");
+const login = require("@VangBanLaNhat/fca-unofficial");
 
 login({appState: JSON.parse(fs.readFileSync('appstate.json', 'utf8'))}, (err, api) => {
     if(err) return console.error(err);
@@ -433,7 +433,7 @@ __Example__
 
 ```js
 const fs = require("fs");
-const login = require("fca-unofficial");
+const login = require("@VangBanLaNhat/fca-unofficial");
 
 login({appState: JSON.parse(fs.readFileSync('appstate.json', 'utf8'))}, (err, api) => {
     if(err) return console.error(err);
@@ -473,7 +473,7 @@ __Example__
 
 ```js
 const fs = require("fs");
-const login = require("fca-unofficial");
+const login = require("@VangBanLaNhat/fca-unofficial");
 
 login({appState: JSON.parse(fs.readFileSync('appstate.json', 'utf8'))}, (err, api) => {
     if(err) return console.error(err);
@@ -501,7 +501,7 @@ __Arguments__
 __Example__
 ```js
 const fs = require("fs");
-const login = require("fca-unofficial");
+const login = require("@VangBanLaNhat/fca-unofficial");
 
 login({appState: JSON.parse(fs.readFileSync('appstate.json', 'utf8'))}, (err, api) => {
     if(err) return console.error(err);
@@ -534,7 +534,7 @@ __Example__
 
 ```js
 const fs = require("fs");
-const login = require("fca-unofficial");
+const login = require("@VangBanLaNhat/fca-unofficial");
 
 login({appState: JSON.parse(fs.readFileSync('appstate.json', 'utf8'))}, (err, api) => {
     if(err) return console.error(err);
@@ -563,7 +563,7 @@ __Example__
 
 ```js
 const fs = require("fs");
-const login = require("fca-unofficial");
+const login = require("@VangBanLaNhat/fca-unofficial");
 
 login({appState: JSON.parse(fs.readFileSync('appstate.json', 'utf8'))}, (err, api) => {
     if(err) return console.error(err);
@@ -621,7 +621,7 @@ __Example__
 
 ```js
 const fs = require("fs");
-const login = require("fca-unofficial");
+const login = require("@VangBanLaNhat/fca-unofficial");
 
 login({appState: JSON.parse(fs.readFileSync('appstate.json', 'utf8'))}, (err, api) => {
     if(err) return console.error(err);
@@ -651,7 +651,7 @@ __Example__
 
 ```js
 const fs = require("fs");
-const login = require("fca-unofficial");
+const login = require("@VangBanLaNhat/fca-unofficial");
 
 login({appState: JSON.parse(fs.readFileSync('appstate.json', 'utf8'))}, (err, api) => {
     if(err) return console.error(err);
@@ -1062,7 +1062,7 @@ __Example__
 
 ```js
 const fs = require("fs");
-const login = require("fca-unofficial");
+const login = require("@VangBanLaNhat/fca-unofficial");
 
 login({appState: JSON.parse(fs.readFileSync('appstate.json', 'utf8'))}, (err, api) => {
     if(err) return console.error(err);
@@ -1094,7 +1094,7 @@ __Example__
 
 ```js
 const fs = require("fs");
-const login = require("fca-unofficial");
+const login = require("@VangBanLaNhat/fca-unofficial");
 
 login({appState: JSON.parse(fs.readFileSync('appstate.json', 'utf8'))}, (err, api) => {
     if(err) return console.error(err);
@@ -1483,7 +1483,7 @@ __Example__
 
 ```js
 const fs = require("fs");
-const login = require("fca-unofficial");
+const login = require("@VangBanLaNhat/fca-unofficial");
 
 // Simple echo bot. He'll repeat anything that you say.
 // Will stop when you say '/stop'
@@ -1578,7 +1578,7 @@ __Example__
 
 ```js
 const fs = require("fs");
-const login = require("fca-unofficial");
+const login = require("@VangBanLaNhat/fca-unofficial");
 
 login({appState: JSON.parse(fs.readFileSync('appstate.json', 'utf8'))}, (err, api) => {
     if(err) return console.error(err);
@@ -1623,7 +1623,7 @@ __Example__
 
 ```js
 const fs = require("fs");
-const login = require("fca-unofficial");
+const login = require("@VangBanLaNhat/fca-unofficial");
 
 login({appState: JSON.parse(fs.readFileSync('appstate.json', 'utf8'))}, (err, api) => {
     if(err) return console.error(err);
@@ -1722,7 +1722,7 @@ __Tip__: to find your own ID, you can look inside the cookies. The `userID` is u
 __Example (Basic Message)__
 ```js
 const fs = require("fs");
-const login = require("fca-unofficial");
+const login = require("@VangBanLaNhat/fca-unofficial");
 
 login({appState: JSON.parse(fs.readFileSync('appstate.json', 'utf8'))}, (err, api) => {
     if(err) return console.error(err);
@@ -1736,7 +1736,7 @@ login({appState: JSON.parse(fs.readFileSync('appstate.json', 'utf8'))}, (err, ap
 __Example (File upload)__
 ```js
 const fs = require("fs");
-const login = require("fca-unofficial");
+const login = require("@VangBanLaNhat/fca-unofficial");
 
 login({appState: JSON.parse(fs.readFileSync('appstate.json', 'utf8'))}, (err, api) => {
     if(err) return console.error(err);
@@ -1753,7 +1753,7 @@ login({appState: JSON.parse(fs.readFileSync('appstate.json', 'utf8'))}, (err, ap
 
 __Example (Mention)__
 ```js
-const login = require("fca-unofficial");
+const login = require("@VangBanLaNhat/fca-unofficial");
 
 login({email: "EMAIL", password: "PASSWORD"}, (err, api) => {
     if(err) return console.error(err);
@@ -1777,7 +1777,7 @@ login({email: "EMAIL", password: "PASSWORD"}, (err, api) => {
 
 __Example (Location)__
 ```js
-const login = require("fca-unofficial");
+const login = require("@VangBanLaNhat/fca-unofficial");
 login({email: "EMAIL", password: "PASSWORD"}, (err, api) => {
     if(err) return console.error(err);
     var yourID = "000000000000000";
@@ -1877,7 +1877,7 @@ __Example__
 
 ```js
 const fs = require("fs");
-const login = require("fca-unofficial");
+const login = require("@VangBanLaNhat/fca-unofficial");
 
 // Simple echo bot. This will send messages forever.
 

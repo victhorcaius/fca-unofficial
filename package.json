@@ -1,5 +1,5 @@
 {
-  "name": "fca-unofficial",
+  "name": "@VangBanLaNhat/fca-unofficial",
   "version": "1.4.2",
   "main": "src/index.js",
   "description": "A Facebook chat API that doesn't rely on XMPP. Will NOT be deprecated after April 30th 2015.",
