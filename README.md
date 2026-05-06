@@ -1,9 +1,9 @@
 # Unofficial Facebook Chat API
 
 <div align="center">
-  <a href="https://www.npmjs.com/package/fca-unofficial"><img alt="npm version" src="https://img.shields.io/npm/v/fca-unofficial.svg?style=flat-square"></a>
+  <a href="https://www.npmjs.com/package/@vangbanlanhat/fca-unofficial"><img alt="npm version" src="https://img.shields.io/npm/v/@vangbanlanhat/fca-unofficial.svg?style=flat-square"></a>
   <img alt="version" src="https://img.shields.io/github/package-json/v/VangBanLaNhat/fca-unofficial?label=github&style=flat-square">
-  <a href="https://www.npmjs.com/package/fca-unofficial"><img src="https://img.shields.io/npm/dm/fca-unofficial.svg?style=flat-square" alt="npm downloads"></a>
+  <a href="https://www.npmjs.com/package/@vangbanlanhat/fca-unofficial"><img src="https://img.shields.io/npm/dm/fca-unofficial.svg?style=flat-square" alt="npm downloads"></a>
   <a href="https://github.com/prettier/prettier"><img alt="code style: prettier" src="https://img.shields.io/badge/code_style-prettier-ff69b4.svg?style=flat-square"></a>
 </div>
 
@@ -40,7 +40,7 @@ For a comprehensive list of all available API methods, options, and parameters, 
 Install the package via NPM:
 
 ```bash
-npm install @VangBanLaNhat/fca-unofficial
+npm i @vangbanlanhat/fca-unofficial
 ```
 
 ### 2. Basic Echo Bot Example
@@ -48,7 +48,7 @@ npm install @VangBanLaNhat/fca-unofficial
 Create an `index.js` file and add the following code to create a bot that echoes messages back to the sender:
 
 ```javascript
-const login = require("@VangBanLaNhat/fca-unofficial");
+const login = require("@vangbanlanhat/fca-unofficial");
 
 // Login using your Facebook credentials
 login({email: "FB_EMAIL", password: "FB_PASSWORD"}, (err, api) => {
@@ -77,7 +77,7 @@ Logging in repeatedly with an email and password is a massive red flag for Faceb
 
 ```javascript
 const fs = require("fs");
-const login = require("@VangBanLaNhat/fca-unofficial");
+const login = require("@vangbanlanhat/fca-unofficial");
 
 // 1. Try to load an existing session
 let appState = null;
