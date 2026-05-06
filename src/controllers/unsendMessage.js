@@ -2,7 +2,7 @@
 
 var utils = require("../utils");
 var log = require("npmlog");
-var e2eeThread = require("../e2ee/thread");
+
 
 module.exports = function(defaultFuncs, api, ctx) {
   return function unsendMessage(messageID, callback, threadID) {
@@ -32,10 +32,6 @@ module.exports = function(defaultFuncs, api, ctx) {
       };
     }
 
-    if (e2eeThread.isE2EEChatJid(threadID)) {
-      api.unsendMessageE2EE(threadID, messageID, callback);
-      return returnPromise;
-    }
 
     var form = {
       message_id: messageID

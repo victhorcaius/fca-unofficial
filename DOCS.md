@@ -44,17 +44,12 @@
 * [`api.removeUserFromGroup`](#removeUserFromGroup)
 * [`api.resolvePhotoUrl`](#resolvePhotoUrl)
 * [`api.searchForThread`](#searchForThread)
-* [`api.sendMessageE2EE`](#sendMessageE2EE)
-* [`api.sendMediaE2EE`](#sendMediaE2EE)
 * [`api.sendMessage`](#sendMessage)
-* [`api.sendReactionE2EE`](#sendReactionE2EE)
-* [`api.sendTypingE2EE`](#sendTypingE2EE)
 * [`api.sendTypingIndicator`](#sendTypingIndicator)
 * [`api.setMessageReaction`](#setMessageReaction)
 * [`api.setOptions`](#setOptions)
 * [`api.setTitle`](#setTitle)
 * [`api.threadColors`](#threadColors)
-* [`api.unsendMessageE2EE`](#unsendMessageE2EE)
 * [`api.unsendMessage`](#unsendMessage)
 
 ---------------------------------------
@@ -68,22 +63,6 @@ Run the test suites with the current Jest scripts:
 * `npm run test:integration`: Integration tests under `test/integration`.
 
 ---------------------------------------
-
-### E2EE build FAQ
-
-If your project installs `fca-unofficial` as a dependency, you usually do not run `pnpm run build:e2ee` from that consuming project.
-
-That script is defined in `fca-unofficial` itself, so it is only available when you run it inside the package that owns the script. In most cases, the normal install flow is enough because `meta-messenger.js` will try to download a prebuilt native bridge during install.
-
-If the bridge is missing or you want to force a rebuild, run `pnpm run build:e2ee` inside the `fca-unofficial` package. If you want your own app to expose a wrapper, you can add a script like this to that app's `package.json`:
-
-```json
-"scripts": {
-	"build:e2ee": "node -e \"const cp=require('child_process');const fs=require('fs');const path=require('path');const {createRequire}=require('module');const fcaPkg=require.resolve('fca-unofficial/package.json');const fcaRequire=createRequire(fcaPkg);let metaPkg;try{metaPkg=fcaRequire.resolve('meta-messenger.js/package.json');}catch(e){console.error('meta-messenger.js not found from fca-unofficial context. Run: pnpm add meta-messenger.js');process.exit(1);}const p=path.dirname(metaPkg);cp.execSync('pnpm install --force --ignore-scripts=false',{cwd:p,stdio:'inherit',shell:true});cp.execSync('node scripts/postinstall.mjs',{cwd:p,stdio:'inherit',shell:true});let ext='so';if(process.platform==='win32') ext='dll';if(process.platform==='darwin') ext='dylib';const out=path.join(p,'build','messagix.'+ext);if(!fs.existsSync(out)){console.error('E2EE native bridge was not created: '+out);console.error('Try: MESSAGIX_BUILD_FROM_SOURCE=true pnpm run build:e2ee (requires Go)');process.exit(1);}console.log('E2EE bridge ready: '+out);\""
-}
-```
-
-If no prebuilt binary is available, rebuild from source with `MESSAGIX_BUILD_FROM_SOURCE=true` and Go 1.24+.
 
 ---------------------------------------
 
@@ -1716,11 +1695,8 @@ __Auto mode__
 
 `api.sendMessage` now auto-selects the transport:
 
-* E2EE send when `threadID` is a chat JID (`*@user.facebook.com` or `*@group.facebook.com`).
-* MQTT send when MQTT client is connected (`listenMqtt` is active), message type is MQTT-compatible, and target is not E2EE.
-* HTTP send as fallback for cases not covered by MQTT path.
-
-For E2EE `threadID` in auto mode, `sendMessage` currently supports text/reply only. Use `api.sendMediaE2EE` for media.
+* MQTT send when MQTT client is connected (`listenMqtt` is active) and message type is MQTT-compatible.
+* HTTP send as fallback.
 
 Legacy alias:
 
@@ -1826,7 +1802,7 @@ __Arguments__
 
 __Auto mode__
 
-`api.sendTypingIndicator` auto-selects normal typing or E2EE typing based on `threadID` format (same rule as `api.sendMessage`).
+`api.sendTypingIndicator` uses MQTT when `listenMqtt` is active, otherwise HTTP.
 
 ---------------------------------------
 
@@ -1842,17 +1818,9 @@ __Arguments__
 * `callback(err)`: A callback called when sending the reaction is done.
 * `forceCustomReaction`: Forcing the use of an emoji for setting reaction **(WARNING: NOT TESTED, YOU SHOULD NOT USE THIS AT ALL, UNLESS YOU'RE TESTING A NEW EMOJI)**
 
-__Auto E2EE mode__
+For messages, MQTT reaction is used by default when MQTT client is connected and `threadID` is provided.
 
-You can pass an E2EE message descriptor instead of plain `messageID`:
-
-* `api.setMessageReaction(reaction, { messageID, chatJid, senderJid }, callback)`
-
-When `chatJid` is an E2EE chat JID, the API routes to E2EE reaction automatically.
-
-For non-E2EE messages, MQTT reaction is used by default when MQTT client is connected and `threadID` is provided.
-
-Recommended non-E2EE descriptor format:
+Recommended descriptor format:
 
 * `api.setMessageReaction(reaction, { messageID, threadID }, callback)`
 
@@ -1902,12 +1870,8 @@ __Arguments__
 	- `autoMarkRead`: (Default `false`) Will automatically mark new messages as read/seen. See [api.markAsRead](#markAsRead).
 	- `proxy`: (Default empty) Set this to proxy server address to use proxy. Note: Only HTTP Proxies which support CONNECT method is supported.
 	- `online`: (Default `true`) Set account's online state.
-	- `autoReconnect`: (Default `true`) Reconnect MQTT/E2EE listeners automatically on disconnect.
+	- `autoReconnect`: (Default `true`) Reconnect MQTT listeners automatically on disconnect.
 	- `emitReady`: (Default `false`) Emit ready event in listen loop startup.
-	- `enableE2EE`: (Default `false`) Enable E2EE bridge integration.
-	- `e2eeMemoryOnly`: (Default `true`) Keep E2EE device/session data in memory only.
-	- `e2eeDevicePath`: (Default empty) Path to persist E2EE device data.
-	- `e2eeDeviceData`: (Default empty) Preloaded E2EE device data JSON string.
 
 __Example__
 
@@ -1963,72 +1927,6 @@ Note: This will only work if the message is sent by you and was sent less than 1
 __Arguments__
 
 * `messageID`: Message ID you want to unsend.
-* `callback(err)`: A callback called when the query is done (with an error or with null).
-
-__Auto E2EE mode__
-
-You can pass E2EE context to auto-route unsend:
-
-* `api.unsendMessage({ messageID, chatJid }, callback)`
-* `api.unsendMessage(messageID, callback, chatJid)`
-
-When `chatJid` is an E2EE chat JID, the API routes to E2EE unsend automatically.
-
 ---------------------------------------
 
-### E2EE bridge build
 
-`fca-unofficial` uses `meta-messenger.js` for the native E2EE bridge. If the native `messagix` binary is missing after install, run:
-
-```bash
-pnpm run build:e2ee
-```
-
-The script resolves the installed `meta-messenger.js` package, reruns its `postinstall` hook, and verifies `build/messagix.so|dll|dylib`. If you need to compile from source, rerun with `MESSAGIX_BUILD_FROM_SOURCE=true pnpm run build:e2ee`. Source builds require Go 1.24+.
-
----------------------------------------
-
-<a name="sendMessageE2EE"></a>
-### api.sendMessageE2EE(chatJid, message[, callback])
-
-Sends a text message through E2EE transport.
-
-This method also supports auto fallback to normal `api.sendMessage` if `chatJid` is not an E2EE chat JID.
-
----------------------------------------
-
-<a name="sendMediaE2EE"></a>
-### api.sendMediaE2EE(chatJid, mediaType, data[, options][, callback])
-
-Sends media through E2EE transport.
-
-This method also supports auto fallback to normal send with attachment when `chatJid` is not an E2EE chat JID.
-
----------------------------------------
-
-<a name="sendReactionE2EE"></a>
-### api.sendReactionE2EE(chatJid, messageID, senderJid, reaction[, callback])
-
-Sets/removes reaction through E2EE transport.
-
-This method also supports auto fallback to normal `api.setMessageReaction` when `chatJid` is not an E2EE chat JID.
-
----------------------------------------
-
-<a name="sendTypingE2EE"></a>
-### api.sendTypingE2EE(chatJid, isTyping[, callback])
-
-Sends typing indicator through E2EE transport.
-
-This method also supports auto fallback to normal `api.sendTypingIndicator` when `chatJid` is not an E2EE chat JID.
-
----------------------------------------
-
-<a name="unsendMessageE2EE"></a>
-### api.unsendMessageE2EE(chatJid, messageID[, callback])
-
-Unsend message through E2EE transport.
-
-This method also supports auto fallback to normal `api.unsendMessage` when `chatJid` is not an E2EE chat JID.
-
----------------------------------------

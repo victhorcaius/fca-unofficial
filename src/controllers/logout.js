@@ -2,7 +2,7 @@
 
 var utils = require("../utils");
 var log = require("npmlog");
-var e2eeBridge = require("../e2ee/bridge");
+
 
 function safeGetFrom(str, start, end) {
   try {
@@ -122,17 +122,9 @@ module.exports = function(defaultFuncs, api, ctx) {
           clearInterval(ctx.refreshDtsgTimer);
           ctx.refreshDtsgTimer = null;
         }
-        return e2eeBridge
-          .createBridge(ctx)
-          .disconnect()
-          .catch(function (err) {
-            log.error("logout:e2ee", err);
-          })
-          .then(function () {
-            ctx.loggedIn = false;
-            log.info("logout", "Logged out successfully.");
-            callback();
-          });
+        ctx.loggedIn = false;
+        log.info("logout", "Logged out successfully.");
+        callback();
       })
       .catch(function(err) {
         log.error("logout", err);

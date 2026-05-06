@@ -7,11 +7,6 @@
     "test": "jest --runInBand --testPathIgnorePatterns=\"/test/integration/\"",
     "test:unit": "jest --runInBand",
     "test:integration": "jest --runInBand --testPathPattern=\"test/integration\"",
-    "discover:e2ee-jid": "node scripts/discover-e2ee-jid.js",
-    "listen:echo-all": "node scripts/listen-echo-all.js",
-    "smoke:e2ee-send": "node scripts/e2ee-send-smoke.js",
-    "debug:e2ee-send": "node scripts/e2ee-send-debug.js",
-    "build:e2ee": "node -e \"const cp=require('child_process');const fs=require('fs');const path=require('path');let metaPkg;try{metaPkg=require.resolve('meta-messenger.js/package.json');}catch(e){console.error('meta-messenger.js not found. Run: pnpm install');process.exit(1);}const pkgDir=path.dirname(metaPkg);cp.execSync('pnpm install --force --ignore-scripts=false',{cwd:pkgDir,stdio:'inherit',shell:true});cp.execSync('node scripts/postinstall.mjs',{cwd:pkgDir,stdio:'inherit',shell:true});let ext='so';if(process.platform==='win32') ext='dll';if(process.platform==='darwin') ext='dylib';const out=path.join(pkgDir,'build','messagix.'+ext);if(!fs.existsSync(out)){console.error('E2EE native bridge was not created: '+out);console.error('Try: MESSAGIX_BUILD_FROM_SOURCE=true pnpm run build:e2ee (requires Go)');process.exit(1);}console.log('E2EE bridge ready: '+out);\"",
     "lint": "eslint \"src/**/*.js\" && eslint --env jest \"test/**/*.js\"",
     "prettier": "prettier \"src/**/*.js\" \"test/**/*.js\" --write"
   },
@@ -34,7 +29,7 @@
     "bluebird": "^2.11.0",
     "cheerio": "^0.22.0",
     "https-proxy-agent": "^4.0.0",
-    "meta-messenger.js": "^1.1.3",
+
     "mqtt": "^3.0.0",
     "npmlog": "^1.2.1",
     "request": "^2.88.2",

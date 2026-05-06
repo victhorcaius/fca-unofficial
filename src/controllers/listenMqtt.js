@@ -6,7 +6,7 @@ var mqtt = require('mqtt');
 var websocket = require('websocket-stream');
 var HttpsProxyAgent = require('https-proxy-agent');
 const EventEmitter = require('events');
-var e2eeBridge = require("../e2ee/bridge");
+
 var identity = function () { };
 var form = {};
 var getSeqID = function () { };
@@ -49,15 +49,8 @@ function listenMqtt(defaultFuncs, api, ctx, globalCallback) {
 	function maybeEmitFullyReady() {
 		if (ctx._fullyReadyEmitted) return;
 		if (!ctx._socketReady) return;
-
-		var needsE2EE = ctx.globalOptions.enableE2EE !== false;
-		if (needsE2EE && !ctx._e2eeFullyReady) return;
-
 		ctx._fullyReadyEmitted = true;
-		globalCallback(null, {
-			type: "fullyReady",
-			isE2EE: needsE2EE
-		});
+		globalCallback(null, { type: "fullyReady" });
 	}
 
 	function scheduleReconnect() {
@@ -738,31 +731,6 @@ function markDelivery(ctx, api, threadID, messageID) {
 	}
 }
 
-function startE2EEBridgeIfEnabled(ctx, globalCallback) {
-	if (ctx.globalOptions.enableE2EE === false) {
-		return;
-	}
-
-	e2eeBridge
-		.createBridge(ctx)
-		.connect(globalCallback)
-		.catch(function (err) {
-			log.error("listenMqtt:e2ee", err);
-			if (typeof globalCallback === "function") {
-				globalCallback(err);
-			}
-		});
-}
-
-function stopE2EEBridge(ctx) {
-	if (!ctx._e2eeBridge) {
-		return Promise.resolve();
-	}
-
-	return ctx._e2eeBridge.disconnect().catch(function (err) {
-		log.error("listenMqtt:e2ee", err);
-	});
-}
 
 module.exports = function (defaultFuncs, api, ctx) {
 	var globalCallback = identity;
@@ -795,7 +763,6 @@ module.exports = function (defaultFuncs, api, ctx) {
 				callback = callback || (() => { });
 				globalCallback = identity;
 				ctx._stopListening = true;
-				stopE2EEBridge(ctx);
 				if (ctx.mqttClient) {
 					ctx.mqttClient.unsubscribe("/webrtc");
 					ctx.mqttClient.unsubscribe("/rtc_multi");
@@ -815,24 +782,7 @@ module.exports = function (defaultFuncs, api, ctx) {
 			msgEmitter.emit("message", message);
 		});
 
-		var rawCallback = globalCallback;
 		globalCallback = function (error, message) {
-			if (!error && message && message.type === "e2ee_fully_ready") {
-				ctx._e2eeFullyReady = true;
-				if (ctx._socketReady && !ctx._fullyReadyEmitted) {
-					ctx._fullyReadyEmitted = true;
-					rawCallback(null, {
-						type: "fullyReady",
-						isE2EE: true
-					});
-				}
-			}
-
-			if (!error && message && message.type === "e2ee_disconnected") {
-				ctx._e2eeFullyReady = false;
-				ctx._fullyReadyEmitted = false;
-			}
-
 			return rawCallback(error, message);
 		};
 
@@ -841,7 +791,6 @@ module.exports = function (defaultFuncs, api, ctx) {
 		ctx.syncToken = undefined;
 		ctx.t_mqttCalled = false;
 		ctx._socketReady = false;
-		ctx._e2eeFullyReady = ctx.globalOptions.enableE2EE === false;
 		ctx._fullyReadyEmitted = false;
 
 		//Same request as getThreadList
@@ -863,7 +812,6 @@ module.exports = function (defaultFuncs, api, ctx) {
 
 		if (!ctx.firstListen || !ctx.lastSeqId) getSeqID();
 		else listenMqtt(defaultFuncs, api, ctx, globalCallback);
-		startE2EEBridgeIfEnabled(ctx, globalCallback);
 		ctx.firstListen = false;
 		return msgEmitter;
 	};

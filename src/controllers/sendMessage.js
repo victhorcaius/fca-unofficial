@@ -3,7 +3,7 @@
 var utils = require("../utils");
 var log = require("npmlog");
 var path = require("path");
-var e2eeThread = require("../e2ee/thread");
+
 var createUploadAttachment = require("../service/uploadAttachment");
 
 var allowedProperties = {
@@ -87,10 +87,10 @@ module.exports = function (defaultFuncs, api, ctx) {
 
   function sendContent(form, threadID, isSingleUser, messageAndOTID, callback) {
     // There are three cases here:
-    // 1. threadID is of type array, where we're starting a new group chat with users
+    //threadID is of type array, where we're starting a new group chat with users
     //    specified in the array.
-    // 2. User is sending a message to a specific user.
-    // 3. No additional form params and the message goes to an existing group chat.
+    //User is sending a message to a specific user.
+    // No additional form params and the message goes to an existing group chat.
     if (utils.getType(threadID) === "Array") {
       for (var i = 0; i < threadID.length; i++) {
         form["specific_to_list[" + i + "]"] = "fbid:" + threadID[i];
@@ -392,82 +392,6 @@ module.exports = function (defaultFuncs, api, ctx) {
     var threadIDType = utils.getType(threadID);
     var messageIDType = utils.getType(replyToMessage);
 
-    // Auto E2EE mode: if threadID is chat JID, route to E2EE sender.
-    if (e2eeThread.isE2EEChatJid(threadID)) {
-      if (msgType !== "String" && msgType !== "Object") {
-        return callback({
-          error:
-            "Message should be of type string or object and not " + msgType + "."
-        });
-      }
-
-      if (msgType === "String") {
-        msg = { body: msg };
-      }
-
-      if (msg.url || msg.sticker || msg.emoji || msg.location || msg.mentions) {
-        return callback({
-          error:
-            "Auto E2EE in sendMessage currently supports text and attachment only."
-        });
-      }
-
-      var textBody = msg.body != null ? String(msg.body) : "";
-      var hasTextBody = !!textBody.trim();
-
-      if (msg.attachment && utils.getType(msg.attachment) !== "Array") {
-        msg.attachment = [msg.attachment];
-      }
-
-      var attachments = msg.attachment || [];
-      for (var a = 0; a < attachments.length; a++) {
-        if (!utils.isReadableStream(attachments[a])) {
-          return callback({
-            error:
-              "Attachment should be a readable stream and not " +
-              utils.getType(attachments[a]) +
-              "."
-          });
-        }
-      }
-
-      if (!hasTextBody && attachments.length === 0) {
-        return callback({ error: "E2EE message body/attachment is empty." });
-      }
-
-      (async function () {
-        var lastResult = null;
-
-        if (hasTextBody) {
-          lastResult = await api.sendMessageE2EE(threadID, {
-            text: textBody,
-            replyToId: replyToMessage || msg.replyToId,
-            replyToSenderJid: msg.replyToSenderJid
-          });
-        }
-
-        for (var i = 0; i < attachments.length; i++) {
-          var attachment = attachments[i];
-          var buffer = await streamToBuffer(attachment);
-          var media = detectMediaFromAttachment(attachment);
-          lastResult = await api.sendMediaE2EE(threadID, media.mediaType, buffer, {
-            filename: media.filename,
-            replyToId: replyToMessage || msg.replyToId,
-            replyToSenderJid: msg.replyToSenderJid
-          });
-        }
-
-        callback(null, lastResult || {
-          threadID: threadID,
-          timestamp: Date.now(),
-          isE2EE: true
-        });
-      })().catch(function (err) {
-        callback(err);
-      });
-
-      return returnPromise;
-    }
 
     if (msgType !== "String" && msgType !== "Object") {
       return callback({
