@@ -11,7 +11,7 @@ try {
 }
 
 var login = require("../../src/index.js");
-var controllers = require("../../src/controllers");
+var actions = require("../../src/actions");
 
 var appStatePath = process.env.APPSTATE_PATH || path.join(__dirname, "../appstate.json");
 var sendUserIDs = String(process.env.FCA_TEST_USER_IDS || "")
@@ -25,7 +25,7 @@ var hasAppState = fs.existsSync(appStatePath);
 
 var describeWithAppState = hasAppState ? describe : describe.skip;
 
-describeWithAppState("AppState login + controller smoke", function () {
+describeWithAppState("AppState login + action smoke", function () {
   jest.setTimeout(45000);
 
   var api = null;
@@ -115,10 +115,10 @@ describeWithAppState("AppState login + controller smoke", function () {
     });
   });
 
-  test("should expose controller methods on api", function () {
-    var controllerNames = Object.keys(controllers);
+  test("should expose action methods on api", function () {
+    var actionNames = Object.keys(actions);
 
-    controllerNames.forEach(function (name) {
+    actionNames.forEach(function (name) {
       if (name === "threadColors") {
         assert(api.threadColors && typeof api.threadColors === "object");
         return;
@@ -140,7 +140,7 @@ describeWithAppState("AppState login + controller smoke", function () {
   test("should send message to configured user list and group", async function () {
     assert(sendUserIDs.length > 0, "FCA_TEST_USER_IDS is required for send tests");
 
-    var userBody = "controller-smoke-user-" + Date.now();
+    var userBody = "action-smoke-user-" + Date.now();
     var userResult = null;
     var userTarget = null;
     var userErrors = [];
@@ -174,7 +174,7 @@ describeWithAppState("AppState login + controller smoke", function () {
       );
     }
 
-    var groupBody = "controller-smoke-group-" + Date.now();
+    var groupBody = "action-smoke-group-" + Date.now();
     var groupResult = await toResult(function (cb) {
       api.sendMessage({ body: groupBody }, sendGroupID, cb);
     });
@@ -185,7 +185,7 @@ describeWithAppState("AppState login + controller smoke", function () {
     assert(groupResult.data.messageID, "sendMessage (group) result should include messageID");
   });
 
-  test("should call core read-only controllers", async function () {
+  test("should call core read-only actions", async function () {
     var me = await toResult(function (cb) {
       api.getUserInfo(userID, cb);
     });
@@ -208,7 +208,7 @@ describeWithAppState("AppState login + controller smoke", function () {
     }, "getThreadInfo");
   });
 
-  test("should keep deprecated read-only controllers callable", async function () {
+  test("should keep deprecated read-only actions callable", async function () {
     var listDeprecated = await toResult(function (cb) {
       api.getThreadListDeprecated(0, 1, "inbox", cb);
     });

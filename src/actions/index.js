@@ -1,6 +1,6 @@
 "use strict";
 
-var controllerNames = [
+var actionNames = [
   "addExternalModule",
   "addUserToGroup",
   "changeAdminStatus",
@@ -63,7 +63,7 @@ var controllerNames = [
   "getThreadInfoDeprecated"
 ];
 
-module.exports = controllerNames.reduce(function (acc, name) {
+module.exports = actionNames.reduce(function (acc, name) {
   acc[name] = require("./" + name + ".js");
   return acc;
 }, {});

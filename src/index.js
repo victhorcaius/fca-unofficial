@@ -3,7 +3,7 @@
 var utils = require("./utils");
 var cheerio = require("cheerio");
 var log = require("npmlog");
-var controllers = require("./controllers");
+var actions = require("./actions");
 
 var checkVerified = null;
 
@@ -234,13 +234,13 @@ function buildAPI(globalOptions, html, jar) {
     api["htmlData"] = noMqttData;
   }
 
-  var apiFuncNames = Object.keys(controllers);
+  var apiFuncNames = Object.keys(actions);
 
   var defaultFuncs = utils.makeDefaults(html, userID, ctx);
 
   // Load all api functions in a loop
   apiFuncNames.map(function (v) {
-    api[v] = controllers[v](defaultFuncs, api, ctx);
+    api[v] = actions[v](defaultFuncs, api, ctx);
   });
 
   //Removing original `listen` that uses pull.

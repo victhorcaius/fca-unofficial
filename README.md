@@ -119,7 +119,7 @@ This library essentially functions as a headless Facebook web client.
 ```text
 src/
 ├── index.js          # Main entrypoint and API builder
-├── controllers/      # Contains all the individual API methods
+├── actions/      # Contains all the individual API methods
 │   ├── listenMqtt.js # Manages the real-time MQTT socket
 │   ├── sendMessage.js# Handles message formatting and sending
 │   └── ...           # Other actions (reactions, unsending, etc.)

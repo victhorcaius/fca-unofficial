@@ -1,10 +1,10 @@
 "use strict";
 
 describe("src/index", function () {
-  test("exports login function and wires controllers when using appState", function () {
+  test("exports login function and wires actions when using appState", function () {
     return new Promise(function (resolve, reject) {
       jest.isolateModules(function () {
-        var controllerFactory = jest.fn(function () {
+        var actionFactory = jest.fn(function () {
           return function () {
             return "ok";
           };
@@ -15,9 +15,9 @@ describe("src/index", function () {
           };
         });
 
-        jest.doMock("../../../src/controllers", function () {
+        jest.doMock("../../../src/actions", function () {
           return {
-            foo: controllerFactory,
+            foo: actionFactory,
             listenMqtt: listenFactory
           };
         });
@@ -95,7 +95,7 @@ describe("src/index", function () {
               expect(typeof api.foo).toBe("function");
               expect(typeof api.listenMqtt).toBe("function");
               expect(api.listen).toBe(api.listenMqtt);
-              expect(controllerFactory).toHaveBeenCalled();
+              expect(actionFactory).toHaveBeenCalled();
               expect(listenFactory).toHaveBeenCalled();
               resolve();
             } catch (e) {

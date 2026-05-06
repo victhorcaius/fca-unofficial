@@ -1,15 +1,15 @@
 "use strict";
 
-describe("controller behavior basics", function () {
+describe("action behavior basics", function () {
   test("getCurrentUserID returns ctx.userID", function () {
-    var factory = require("../../../src/controllers/getCurrentUserID");
+    var factory = require("../../../src/actions/getCurrentUserID");
     var fn = factory({}, {}, { userID: "123456" });
 
     expect(fn()).toBe("123456");
   });
 
   test("getCurrentUserID supports callback and await style", async function () {
-    var factory = require("../../../src/controllers/getCurrentUserID");
+    var factory = require("../../../src/actions/getCurrentUserID");
     var fn = factory({}, {}, { userID: "123456" });
 
     var cbValue;
@@ -23,7 +23,7 @@ describe("controller behavior basics", function () {
   });
 
   test("threadColors exposes known palette keys", function () {
-    var factory = require("../../../src/controllers/threadColors");
+    var factory = require("../../../src/actions/threadColors");
     var colors = factory({}, {}, {});
 
     expect(colors).toHaveProperty("DefaultBlue");
@@ -33,7 +33,7 @@ describe("controller behavior basics", function () {
   });
 
   test("addExternalModule injects dynamic API functions", function () {
-    var factory = require("../../../src/controllers/addExternalModule");
+    var factory = require("../../../src/actions/addExternalModule");
     var api = {};
     var defaultFuncs = {};
     var ctx = { userID: "42" };
@@ -53,7 +53,7 @@ describe("controller behavior basics", function () {
   });
 
   test("addExternalModule validates input types", function () {
-    var factory = require("../../../src/controllers/addExternalModule");
+    var factory = require("../../../src/actions/addExternalModule");
     var api = {};
     var addExternalModule = factory({}, api, {});
 
@@ -67,7 +67,7 @@ describe("controller behavior basics", function () {
   });
 
   test("addExternalModule supports callback", function () {
-    var factory = require("../../../src/controllers/addExternalModule");
+    var factory = require("../../../src/actions/addExternalModule");
     var api = {};
     var defaultFuncs = {};
     var ctx = { userID: "42" };
@@ -91,8 +91,8 @@ describe("controller behavior basics", function () {
   });
 
   test("getRegion and getEmojiUrl support callback", function () {
-    var getRegionFactory = require("../../../src/controllers/getRegion");
-    var getEmojiUrlFactory = require("../../../src/controllers/getEmojiUrl");
+    var getRegionFactory = require("../../../src/actions/getRegion");
+    var getEmojiUrlFactory = require("../../../src/actions/getEmojiUrl");
 
     var getRegion = getRegionFactory({}, {}, { region: "PRN" });
     var getEmojiUrl = getEmojiUrlFactory({}, {}, {});
