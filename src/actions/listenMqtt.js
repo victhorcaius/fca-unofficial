@@ -777,14 +777,14 @@ module.exports = function (defaultFuncs, api, ctx) {
 		}
 
 		var msgEmitter = new MessageEmitter();
-		globalCallback = (callback || function (error, message) {
+		var rawCallback = (callback || function (error, message) {
 			if (error) return msgEmitter.emit("error", error);
 			msgEmitter.emit("message", message);
 		});
 
-		// globalCallback = function (error, message) {
-		// 	return rawCallback(error, message);
-		// };
+		globalCallback = function (error, message) {
+			return rawCallback(error, message);
+		};
 
 		//Reset some stuff
 		if (!ctx.firstListen) ctx.lastSeqId = null;
