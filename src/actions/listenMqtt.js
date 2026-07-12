@@ -78,16 +78,17 @@ function listenMqtt(defaultFuncs, api, ctx, globalCallback) {
 	//Don't really know what this does but I think it's for the active state?
 	//TODO: Move to ctx when implemented
 	var chatOn = ctx.globalOptions.online;
-	var foreground = false;
+	var foreground = true;
 
 	var sessionID = Math.floor(Math.random() * 9007199254740991) + 1;
-	var username = {u: ctx.userID,s: sessionID,chat_on: chatOn,fg: foreground,d: utils.getGUID(),ct: "websocket",aid: "219994525426954", mqtt_sid: "",cp: 3,ecp: 10,st: [],pm: [],dc: "",no_auto_fg: true,gas: null,pack: []};
+	var clientID = utils.getGUID();
+	var username = {u: ctx.userID,s: sessionID,chat_on: chatOn,fg: foreground,d: clientID,ct: "websocket",aid: "219994525426954", mqtt_sid: "",cp: 3,ecp: 10,st: [],pm: [],dc: "",no_auto_fg: true,gas: null,pack: []};
 	var cookies = ctx.jar.getCookies('https://www.facebook.com').join("; ");
 
 	var host;
-	if (ctx.mqttEndpoint) host = `${ctx.mqttEndpoint}&sid=${sessionID}`;
-	else if (ctx.region) host = `wss://edge-chat.facebook.com/chat?region=${ctx.region.toLocaleLowerCase()}&sid=${sessionID}`;
-	else host = `wss://edge-chat.facebook.com/chat?sid=${sessionID}`;
+	if (ctx.mqttEndpoint) host = `${ctx.mqttEndpoint}&sid=${sessionID}&cid=${clientID}`;
+	else if (ctx.region) host = `wss://edge-chat.facebook.com/chat?region=${ctx.region.toLocaleLowerCase()}&sid=${sessionID}&cid=${clientID}`;
+	else host = `wss://edge-chat.facebook.com/chat?sid=${sessionID}&cid=${clientID}`;
    
 	var options = {
 		clientId: "mqttwsclient",
@@ -172,6 +173,38 @@ function listenMqtt(defaultFuncs, api, ctx, globalCallback) {
 				globalCallback(null, { type: "ready", error: null });
 			}
 			maybeEmitFullyReady();
+
+			// Fake telemetry to mimic real browser
+			if (!ctx.screenTimeSent) {
+				ctx.screenTimeSent = true;
+				var form = {
+					"av": ctx.globalOptions.pageID,
+					"queries": JSON.stringify({
+						"o0": {
+							"doc_id": "30984609371137911",
+							"query_params": {}
+						},
+						"o1": {
+							"doc_id": "9691594727545032",
+							"query_params": {}
+						},
+						"o2": {
+							"doc_id": "9714526941947209",
+							"query_params": {}
+						}
+					}),
+					"batch_name": "MessengerGraphQLTelemetryBatch"
+				};
+				defaultFuncs
+					.post("https://www.facebook.com/api/graphqlbatch/", ctx.jar, form)
+					.then(function() {
+						log.info("listenMqtt", "ScreenTime and Badge telemetry queries sent.");
+					})
+					.catch(function(err) {
+						log.error("listenMqtt", "Failed to send telemetry queries: " + err);
+					});
+			}
+
 			delete ctx.tmsWait;
 		};
 	});
