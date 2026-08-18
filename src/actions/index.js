@@ -51,6 +51,7 @@ var actionNames = [
   // "sendTypingIndicatorMqtt",
   "setMessageReaction",
   "setMessageReactionMqtt",
+  "setProfileGuard",
   "setTitle",
   "stopListenMqtt",
   "threadColors",
@@ -60,7 +61,8 @@ var actionNames = [
   "httpPost",
   "getThreadListDeprecated",
   "getThreadHistoryDeprecated",
-  "getThreadInfoDeprecated"
+  "getThreadInfoDeprecated",
+  "getBotInitialData"
 ];
 
 module.exports = actionNames.reduce(function (acc, name) {
