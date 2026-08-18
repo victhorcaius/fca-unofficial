@@ -190,6 +190,47 @@ function bypassAutoBehavior(res, jar, appState, globalOptions) {
     });
 }
 
+function getNextPhMidnightDelayMs() {
+  var now = new Date();
+  var nowUtcMs = now.getTime() + now.getTimezoneOffset() * 60 * 1000;
+  var phOffsetMs = 8 * 60 * 60 * 1000;
+  var phNow = new Date(nowUtcMs + phOffsetMs);
+  var nextPhMidnightUtcMs = Date.UTC(
+    phNow.getUTCFullYear(),
+    phNow.getUTCMonth(),
+    phNow.getUTCDate() + 1,
+    0,
+    0,
+    0,
+    0
+  ) - phOffsetMs;
+
+  return Math.max(1000, nextPhMidnightUtcMs - now.getTime());
+}
+
+function scheduleFbDtsgRefresh(api, ctx) {
+  if (ctx.refreshDtsgTimer) {
+    clearTimeout(ctx.refreshDtsgTimer);
+  }
+
+  if (typeof api.refreshFb_dtsg !== "function") {
+    return;
+  }
+
+  function queueNextRefresh() {
+    ctx.refreshDtsgTimer = setTimeout(function () {
+      api.refreshFb_dtsg(function () {});
+      queueNextRefresh();
+    }, getNextPhMidnightDelayMs());
+
+    if (ctx.refreshDtsgTimer && typeof ctx.refreshDtsgTimer.unref === "function") {
+      ctx.refreshDtsgTimer.unref();
+    }
+  }
+
+  queueNextRefresh();
+}
+
 function setOptions(globalOptions, options) {
   Object.keys(options).map(function (key) {
     switch (key) {
@@ -409,18 +450,8 @@ function buildAPI(globalOptions, html, jar) {
   if (typeof api.setMessageReactionMqtt !== "function") {
     api.setMessageReactionMqtt = api.setMessageReaction;
   }
-  // Keep fb_dtsg/jazoest fresh to reduce long-session send failures.
-  if (ctx.refreshDtsgTimer) {
-    clearInterval(ctx.refreshDtsgTimer);
-  }
-  if (typeof api.refreshFb_dtsg === "function") {
-    ctx.refreshDtsgTimer = setInterval(function () {
-      api.refreshFb_dtsg(function () {});
-    }, 2 * 60 * 60 * 1000);
-    if (ctx.refreshDtsgTimer && typeof ctx.refreshDtsgTimer.unref === "function") {
-      ctx.refreshDtsgTimer.unref();
-    }
-  }
+  // Keep fb_dtsg/jazoest fresh by refreshing at the next PH midnight (GMT+8).
+  scheduleFbDtsgRefresh(api, ctx);
 
   return [ctx, defaultFuncs, api];
 }
