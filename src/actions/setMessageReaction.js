@@ -2,7 +2,7 @@
 
 var utils = require("../utils");
 var log = require("npmlog");
-var e2eeThread = require("../e2ee/thread");
+
 
 module.exports = function(defaultFuncs, api, ctx) {
   return function setMessageReaction(reaction, messageID, callback, forceCustomReaction) {
@@ -13,22 +13,10 @@ module.exports = function(defaultFuncs, api, ctx) {
       rejectFunc = reject;
     });
 
-    var e2eeMeta = null;
     var threadID = null;
-    if (utils.getType(messageID) === "Object") {
-      e2eeMeta = messageID;
-      threadID = messageID.threadID || messageID.threadId || null;
-      messageID = messageID.messageID || messageID.messageId || messageID.id;
-    }
 
     if (utils.getType(callback) === "String" || utils.getType(callback) === "Number") {
       threadID = callback.toString();
-      callback = null;
-    }
-
-    if (utils.getType(callback) === "Object") {
-      e2eeMeta = Object.assign({}, e2eeMeta || {}, callback);
-      threadID = callback.threadID || callback.threadId || threadID;
       callback = null;
     }
 
@@ -38,7 +26,6 @@ module.exports = function(defaultFuncs, api, ctx) {
     }
 
     if (utils.getType(forceCustomReaction) === "Object") {
-      e2eeMeta = Object.assign({}, e2eeMeta || {}, forceCustomReaction);
       threadID = forceCustomReaction.threadID || forceCustomReaction.threadId || threadID;
       forceCustomReaction = !!forceCustomReaction.forceCustomReaction;
     }
@@ -103,14 +90,6 @@ module.exports = function(defaultFuncs, api, ctx) {
           break; 
         }
         return callback({ error: "Reaction is not a valid emoji." });
-    }
-
-    if (e2eeMeta && e2eeThread.isE2EEChatJid(e2eeMeta.chatJid)) {
-      if (!e2eeMeta.senderJid) {
-        return callback({ error: "E2EE reaction requires senderJid in message descriptor." });
-      }
-      api.sendReactionE2EE(e2eeMeta.chatJid, messageID, e2eeMeta.senderJid, reaction, callback);
-      return returnPromise;
     }
 
     if (ctx.mqttClient && threadID && !ctx.globalOptions.pageID) {

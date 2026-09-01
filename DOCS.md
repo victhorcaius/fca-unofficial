@@ -44,17 +44,12 @@
 * [`api.removeUserFromGroup`](#removeUserFromGroup)
 * [`api.resolvePhotoUrl`](#resolvePhotoUrl)
 * [`api.searchForThread`](#searchForThread)
-* [`api.sendMessageE2EE`](#sendMessageE2EE)
-* [`api.sendMediaE2EE`](#sendMediaE2EE)
 * [`api.sendMessage`](#sendMessage)
-* [`api.sendReactionE2EE`](#sendReactionE2EE)
-* [`api.sendTypingE2EE`](#sendTypingE2EE)
 * [`api.sendTypingIndicator`](#sendTypingIndicator)
 * [`api.setMessageReaction`](#setMessageReaction)
 * [`api.setOptions`](#setOptions)
 * [`api.setTitle`](#setTitle)
 * [`api.threadColors`](#threadColors)
-* [`api.unsendMessageE2EE`](#unsendMessageE2EE)
 * [`api.unsendMessage`](#unsendMessage)
 
 ---------------------------------------
@@ -66,6 +61,8 @@ Run the test suites with the current Jest scripts:
 * `npm test`: Unit tests only (integration tests excluded by default).
 * `npm run test:unit`: Full unit test run.
 * `npm run test:integration`: Integration tests under `test/integration`.
+
+---------------------------------------
 
 ---------------------------------------
 
@@ -128,7 +125,7 @@ __Arguments__
 __Example (Email & Password)__
 
 ```js
-const login = require("fca-unofficial");
+const login = require("@VangBanLaNhat/fca-unofficial");
 
 login({email: "FB_EMAIL", password: "FB_PASSWORD"}, (err, api) => {
     if(err) return console.error(err);
@@ -140,7 +137,7 @@ __Example (Email & Password then save appState to file)__
 
 ```js
 const fs = require("fs");
-const login = require("fca-unofficial");
+const login = require("@VangBanLaNhat/fca-unofficial");
 
 login({email: "FB_EMAIL", password: "FB_PASSWORD"}, (err, api) => {
     if(err) return console.error(err);
@@ -153,7 +150,7 @@ __Example (AppState loaded from file)__
 
 ```js
 const fs = require("fs");
-const login = require("fca-unofficial");
+const login = require("@VangBanLaNhat/fca-unofficial");
 
 login({appState: JSON.parse(fs.readFileSync('appstate.json', 'utf8'))}, (err, api) => {
     if(err) return console.error(err);
@@ -167,7 +164,7 @@ __Example__:
 
 ```js
 const fs = require("fs");
-const login = require("fca-unofficial");
+const login = require("@VangBanLaNhat/fca-unofficial");
 const readline = require("readline");
 
 var rl = readline.createInterface({
@@ -258,7 +255,7 @@ __Example__
 
 ```js
 const fs = require("fs");
-const login = require("fca-unofficial");
+const login = require("@VangBanLaNhat/fca-unofficial");
 
 login({appState: JSON.parse(fs.readFileSync('appstate.json', 'utf8'))}, (err, api) => {
     if (err) return console.error(err);
@@ -294,7 +291,7 @@ __Example__
 
 ```js
 const fs = require("fs");
-const login = require("fca-unofficial");
+const login = require("@VangBanLaNhat/fca-unofficial");
 
 login({appState: JSON.parse(fs.readFileSync('appstate.json', 'utf8'))}, (err, api) => {
     if(err) return console.error(err);
@@ -349,7 +346,7 @@ __Example__
 
 ```js
 const fs = require("fs");
-const login = require("fca-unofficial");
+const login = require("@VangBanLaNhat/fca-unofficial");
 
 login({appState: JSON.parse(fs.readFileSync('appstate.json', 'utf8'))}, (err, api) => {
     if(err) return console.error(err);
@@ -377,7 +374,7 @@ __Example__
 
 ```js
 const fs = require("fs");
-const login = require("fca-unofficial");
+const login = require("@VangBanLaNhat/fca-unofficial");
 
 login({appState: JSON.parse(fs.readFileSync('appstate.json', 'utf8'))}, (err, api) => {
     if(err) return console.error(err);
@@ -407,7 +404,7 @@ __Example__
 
 ```js
 const fs = require("fs");
-const login = require("fca-unofficial");
+const login = require("@VangBanLaNhat/fca-unofficial");
 
 login({appState: JSON.parse(fs.readFileSync('appstate.json', 'utf8'))}, (err, api) => {
     if(err) return console.error(err);
@@ -436,7 +433,7 @@ __Example__
 
 ```js
 const fs = require("fs");
-const login = require("fca-unofficial");
+const login = require("@VangBanLaNhat/fca-unofficial");
 
 login({appState: JSON.parse(fs.readFileSync('appstate.json', 'utf8'))}, (err, api) => {
     if(err) return console.error(err);
@@ -476,7 +473,7 @@ __Example__
 
 ```js
 const fs = require("fs");
-const login = require("fca-unofficial");
+const login = require("@VangBanLaNhat/fca-unofficial");
 
 login({appState: JSON.parse(fs.readFileSync('appstate.json', 'utf8'))}, (err, api) => {
     if(err) return console.error(err);
@@ -504,7 +501,7 @@ __Arguments__
 __Example__
 ```js
 const fs = require("fs");
-const login = require("fca-unofficial");
+const login = require("@VangBanLaNhat/fca-unofficial");
 
 login({appState: JSON.parse(fs.readFileSync('appstate.json', 'utf8'))}, (err, api) => {
     if(err) return console.error(err);
@@ -537,7 +534,7 @@ __Example__
 
 ```js
 const fs = require("fs");
-const login = require("fca-unofficial");
+const login = require("@VangBanLaNhat/fca-unofficial");
 
 login({appState: JSON.parse(fs.readFileSync('appstate.json', 'utf8'))}, (err, api) => {
     if(err) return console.error(err);
@@ -566,7 +563,7 @@ __Example__
 
 ```js
 const fs = require("fs");
-const login = require("fca-unofficial");
+const login = require("@VangBanLaNhat/fca-unofficial");
 
 login({appState: JSON.parse(fs.readFileSync('appstate.json', 'utf8'))}, (err, api) => {
     if(err) return console.error(err);
@@ -624,7 +621,7 @@ __Example__
 
 ```js
 const fs = require("fs");
-const login = require("fca-unofficial");
+const login = require("@VangBanLaNhat/fca-unofficial");
 
 login({appState: JSON.parse(fs.readFileSync('appstate.json', 'utf8'))}, (err, api) => {
     if(err) return console.error(err);
@@ -654,7 +651,7 @@ __Example__
 
 ```js
 const fs = require("fs");
-const login = require("fca-unofficial");
+const login = require("@VangBanLaNhat/fca-unofficial");
 
 login({appState: JSON.parse(fs.readFileSync('appstate.json', 'utf8'))}, (err, api) => {
     if(err) return console.error(err);
@@ -1065,7 +1062,7 @@ __Example__
 
 ```js
 const fs = require("fs");
-const login = require("fca-unofficial");
+const login = require("@VangBanLaNhat/fca-unofficial");
 
 login({appState: JSON.parse(fs.readFileSync('appstate.json', 'utf8'))}, (err, api) => {
     if(err) return console.error(err);
@@ -1097,7 +1094,7 @@ __Example__
 
 ```js
 const fs = require("fs");
-const login = require("fca-unofficial");
+const login = require("@VangBanLaNhat/fca-unofficial");
 
 login({appState: JSON.parse(fs.readFileSync('appstate.json', 'utf8'))}, (err, api) => {
     if(err) return console.error(err);
@@ -1486,7 +1483,7 @@ __Example__
 
 ```js
 const fs = require("fs");
-const login = require("fca-unofficial");
+const login = require("@VangBanLaNhat/fca-unofficial");
 
 // Simple echo bot. He'll repeat anything that you say.
 // Will stop when you say '/stop'
@@ -1581,7 +1578,7 @@ __Example__
 
 ```js
 const fs = require("fs");
-const login = require("fca-unofficial");
+const login = require("@VangBanLaNhat/fca-unofficial");
 
 login({appState: JSON.parse(fs.readFileSync('appstate.json', 'utf8'))}, (err, api) => {
     if(err) return console.error(err);
@@ -1626,7 +1623,7 @@ __Example__
 
 ```js
 const fs = require("fs");
-const login = require("fca-unofficial");
+const login = require("@VangBanLaNhat/fca-unofficial");
 
 login({appState: JSON.parse(fs.readFileSync('appstate.json', 'utf8'))}, (err, api) => {
     if(err) return console.error(err);
@@ -1698,11 +1695,8 @@ __Auto mode__
 
 `api.sendMessage` now auto-selects the transport:
 
-* E2EE send when `threadID` is a chat JID (`*@user.facebook.com` or `*@group.facebook.com`).
-* MQTT send when MQTT client is connected (`listenMqtt` is active), message type is MQTT-compatible, and target is not E2EE.
-* HTTP send as fallback for cases not covered by MQTT path.
-
-For E2EE `threadID` in auto mode, `sendMessage` currently supports text/reply only. Use `api.sendMediaE2EE` for media.
+* MQTT send when MQTT client is connected (`listenMqtt` is active) and message type is MQTT-compatible.
+* HTTP send as fallback.
 
 Legacy alias:
 
@@ -1728,7 +1722,7 @@ __Tip__: to find your own ID, you can look inside the cookies. The `userID` is u
 __Example (Basic Message)__
 ```js
 const fs = require("fs");
-const login = require("fca-unofficial");
+const login = require("@VangBanLaNhat/fca-unofficial");
 
 login({appState: JSON.parse(fs.readFileSync('appstate.json', 'utf8'))}, (err, api) => {
     if(err) return console.error(err);
@@ -1742,7 +1736,7 @@ login({appState: JSON.parse(fs.readFileSync('appstate.json', 'utf8'))}, (err, ap
 __Example (File upload)__
 ```js
 const fs = require("fs");
-const login = require("fca-unofficial");
+const login = require("@VangBanLaNhat/fca-unofficial");
 
 login({appState: JSON.parse(fs.readFileSync('appstate.json', 'utf8'))}, (err, api) => {
     if(err) return console.error(err);
@@ -1759,7 +1753,7 @@ login({appState: JSON.parse(fs.readFileSync('appstate.json', 'utf8'))}, (err, ap
 
 __Example (Mention)__
 ```js
-const login = require("fca-unofficial");
+const login = require("@VangBanLaNhat/fca-unofficial");
 
 login({email: "EMAIL", password: "PASSWORD"}, (err, api) => {
     if(err) return console.error(err);
@@ -1783,7 +1777,7 @@ login({email: "EMAIL", password: "PASSWORD"}, (err, api) => {
 
 __Example (Location)__
 ```js
-const login = require("fca-unofficial");
+const login = require("@VangBanLaNhat/fca-unofficial");
 login({email: "EMAIL", password: "PASSWORD"}, (err, api) => {
     if(err) return console.error(err);
     var yourID = "000000000000000";
@@ -1808,7 +1802,7 @@ __Arguments__
 
 __Auto mode__
 
-`api.sendTypingIndicator` auto-selects normal typing or E2EE typing based on `threadID` format (same rule as `api.sendMessage`).
+`api.sendTypingIndicator` uses MQTT when `listenMqtt` is active, otherwise HTTP.
 
 ---------------------------------------
 
@@ -1824,17 +1818,9 @@ __Arguments__
 * `callback(err)`: A callback called when sending the reaction is done.
 * `forceCustomReaction`: Forcing the use of an emoji for setting reaction **(WARNING: NOT TESTED, YOU SHOULD NOT USE THIS AT ALL, UNLESS YOU'RE TESTING A NEW EMOJI)**
 
-__Auto E2EE mode__
+For messages, MQTT reaction is used by default when MQTT client is connected and `threadID` is provided.
 
-You can pass an E2EE message descriptor instead of plain `messageID`:
-
-* `api.setMessageReaction(reaction, { messageID, chatJid, senderJid }, callback)`
-
-When `chatJid` is an E2EE chat JID, the API routes to E2EE reaction automatically.
-
-For non-E2EE messages, MQTT reaction is used by default when MQTT client is connected and `threadID` is provided.
-
-Recommended non-E2EE descriptor format:
+Recommended descriptor format:
 
 * `api.setMessageReaction(reaction, { messageID, threadID }, callback)`
 
@@ -1884,18 +1870,14 @@ __Arguments__
 	- `autoMarkRead`: (Default `false`) Will automatically mark new messages as read/seen. See [api.markAsRead](#markAsRead).
 	- `proxy`: (Default empty) Set this to proxy server address to use proxy. Note: Only HTTP Proxies which support CONNECT method is supported.
 	- `online`: (Default `true`) Set account's online state.
-	- `autoReconnect`: (Default `true`) Reconnect MQTT/E2EE listeners automatically on disconnect.
+	- `autoReconnect`: (Default `true`) Reconnect MQTT listeners automatically on disconnect.
 	- `emitReady`: (Default `false`) Emit ready event in listen loop startup.
-	- `enableE2EE`: (Default `false`) Enable E2EE bridge integration.
-	- `e2eeMemoryOnly`: (Default `true`) Keep E2EE device/session data in memory only.
-	- `e2eeDevicePath`: (Default empty) Path to persist E2EE device data.
-	- `e2eeDeviceData`: (Default empty) Preloaded E2EE device data JSON string.
 
 __Example__
 
 ```js
 const fs = require("fs");
-const login = require("fca-unofficial");
+const login = require("@VangBanLaNhat/fca-unofficial");
 
 // Simple echo bot. This will send messages forever.
 
@@ -1945,60 +1927,6 @@ Note: This will only work if the message is sent by you and was sent less than 1
 __Arguments__
 
 * `messageID`: Message ID you want to unsend.
-* `callback(err)`: A callback called when the query is done (with an error or with null).
-
-__Auto E2EE mode__
-
-You can pass E2EE context to auto-route unsend:
-
-* `api.unsendMessage({ messageID, chatJid }, callback)`
-* `api.unsendMessage(messageID, callback, chatJid)`
-
-When `chatJid` is an E2EE chat JID, the API routes to E2EE unsend automatically.
-
 ---------------------------------------
 
-<a name="sendMessageE2EE"></a>
-### api.sendMessageE2EE(chatJid, message[, callback])
 
-Sends a text message through E2EE transport.
-
-This method also supports auto fallback to normal `api.sendMessage` if `chatJid` is not an E2EE chat JID.
-
----------------------------------------
-
-<a name="sendMediaE2EE"></a>
-### api.sendMediaE2EE(chatJid, mediaType, data[, options][, callback])
-
-Sends media through E2EE transport.
-
-This method also supports auto fallback to normal send with attachment when `chatJid` is not an E2EE chat JID.
-
----------------------------------------
-
-<a name="sendReactionE2EE"></a>
-### api.sendReactionE2EE(chatJid, messageID, senderJid, reaction[, callback])
-
-Sets/removes reaction through E2EE transport.
-
-This method also supports auto fallback to normal `api.setMessageReaction` when `chatJid` is not an E2EE chat JID.
-
----------------------------------------
-
-<a name="sendTypingE2EE"></a>
-### api.sendTypingE2EE(chatJid, isTyping[, callback])
-
-Sends typing indicator through E2EE transport.
-
-This method also supports auto fallback to normal `api.sendTypingIndicator` when `chatJid` is not an E2EE chat JID.
-
----------------------------------------
-
-<a name="unsendMessageE2EE"></a>
-### api.unsendMessageE2EE(chatJid, messageID[, callback])
-
-Unsend message through E2EE transport.
-
-This method also supports auto fallback to normal `api.unsendMessage` when `chatJid` is not an E2EE chat JID.
-
----------------------------------------

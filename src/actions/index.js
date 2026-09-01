@@ -1,6 +1,6 @@
 "use strict";
 
-var controllerNames = [
+var actionNames = [
   "addExternalModule",
   "addUserToGroup",
   "changeAdminStatus",
@@ -11,18 +11,16 @@ var controllerNames = [
   "changeNickname",
   "changeThreadColor",
   "changeThreadEmoji",
-  "connectE2EE",
+
   "createNewGroup",
   "createPoll",
   "deleteMessage",
-  "disconnectE2EE",
   "deleteThread",
-  "downloadE2EEMedia",
   "editMessage",
   "forwardAttachment",
   "getAvatarUser",
   "getCurrentUserID",
-  "getE2EEDeviceData",
+
   "getEmojiUrl",
   "getFriendsList",
   "getMessage",
@@ -47,29 +45,27 @@ var controllerNames = [
   "resolvePhotoUrl",
   "searchForThread",
   "searchStickers",
-  "sendMediaE2EE",
   "sendMessage",
   "sendMessageMqtt",
-  "sendMessageE2EE",
-  "sendReactionE2EE",
-  "sendTypingE2EE",
   "sendTypingIndicator",
   // "sendTypingIndicatorMqtt",
   "setMessageReaction",
   "setMessageReactionMqtt",
+  "setProfileGuard",
   "setTitle",
   "stopListenMqtt",
   "threadColors",
-  "unsendMessageE2EE",
+
   "unsendMessage",
   "httpGet",
   "httpPost",
   "getThreadListDeprecated",
   "getThreadHistoryDeprecated",
-  "getThreadInfoDeprecated"
+  "getThreadInfoDeprecated",
+  "getBotInitialData"
 ];
 
-module.exports = controllerNames.reduce(function (acc, name) {
+module.exports = actionNames.reduce(function (acc, name) {
   acc[name] = require("./" + name + ".js");
   return acc;
 }, {});

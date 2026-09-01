@@ -3,7 +3,7 @@
 var utils = require("./utils");
 var cheerio = require("cheerio");
 var log = require("npmlog");
-var controllers = require("./controllers");
+var actions = require("./actions");
 
 var checkVerified = null;
 
@@ -51,6 +51,184 @@ function getRegionFromEndpoint(mqttEndpoint) {
   } catch (_) {
     return null;
   }
+}
+
+function getResponseURL(res) {
+  if (!res || !res.request || !res.request.uri) return "";
+  return res.request.uri.href || "";
+}
+
+function getAppStateUserID(appState, jar) {
+  var source = appState || [];
+  if (Array.isArray(source)) {
+    var stateCookie = source.filter(function (cookie) {
+      return cookie && (cookie.key === "c_user" || cookie.key === "i_user");
+    })[0];
+    if (stateCookie && stateCookie.value) return String(stateCookie.value);
+  }
+
+  if (jar) {
+    var cookies = jar.getCookies("https://www.facebook.com");
+    var jarCookie = cookies.filter(function (cookie) {
+      var key = cookie.cookieString().split("=")[0];
+      return key === "c_user" || key === "i_user";
+    })[0];
+    if (jarCookie) return jarCookie.cookieString().split("=")[1].toString();
+  }
+
+  return null;
+}
+
+function decodeEscapedText(text) {
+  if (!text) return text;
+  return text
+    .replace(/\\\//g, "/")
+    .replace(/\\"/g, "\"")
+    .replace(/\\u0025/g, "%")
+    .replace(/\\u0026/g, "&");
+}
+
+function checkIfSuspended(res, appState, jar) {
+  var url = getResponseURL(res);
+  if (url.indexOf("https://www.facebook.com/checkpoint/") === -1) return null;
+  if (url.indexOf("1501092823525282") === -1) return null;
+
+  var body = res.body || "";
+  var uid = getAppStateUserID(appState, jar);
+  var suspendReasons = {};
+  var durationMatch = body.match(/"log_out_uri":"(.*?)","title":"(.*?)"/);
+  var reasonMatch = body.match(/"reason_section_body":"(.*?)"/);
+
+  if (durationMatch && durationMatch[2]) {
+    suspendReasons.durationInfo = decodeEscapedText(durationMatch[2]);
+  }
+  if (reasonMatch && reasonMatch[1]) {
+    suspendReasons.longReason = decodeEscapedText(reasonMatch[1]);
+    var shortReason = suspendReasons.longReason
+      .toLowerCase()
+      .replace("your account, or activity on it, doesn't follow our community standards on ", "");
+    suspendReasons.shortReason = shortReason.substring(0, 1).toUpperCase() + shortReason.substring(1);
+  }
+
+  log.error("login", "Account " + (uid || "unknown") + " has been suspended.");
+  if (suspendReasons.durationInfo) log.error("login", "Suspension time remaining: " + suspendReasons.durationInfo);
+  if (suspendReasons.longReason) log.error("login", "Suspension reason: " + suspendReasons.longReason);
+
+  return {
+    suspended: true,
+    suspendReasons: suspendReasons
+  };
+}
+
+function checkIfLocked(res, appState, jar) {
+  var url = getResponseURL(res);
+  if (url.indexOf("https://www.facebook.com/checkpoint/") === -1) return null;
+  if (url.indexOf("828281030927956") === -1) return null;
+
+  var body = res.body || "";
+  var uid = getAppStateUserID(appState, jar);
+  var lockedReasons = {};
+  var lockMatch = body.match(/"is_unvetted_flow":true,"title":"(.*?)"/);
+
+  if (lockMatch && lockMatch[1]) {
+    lockedReasons.reason = decodeEscapedText(lockMatch[1]);
+  }
+
+  log.error("login", "Account " + (uid || "unknown") + " has been locked.");
+  if (lockedReasons.reason) log.error("login", "Lock reason: " + lockedReasons.reason);
+
+  return {
+    locked: true,
+    lockedReasons: lockedReasons
+  };
+}
+
+function throwIfLockedOrSuspended(res, appState, jar) {
+  var locked = checkIfLocked(res, appState, jar);
+  if (locked) throw locked;
+
+  var suspended = checkIfSuspended(res, appState, jar);
+  if (suspended) throw suspended;
+
+  return res;
+}
+
+function bypassAutoBehavior(res, jar, appState, globalOptions) {
+  var url = getResponseURL(res);
+  if (url.indexOf("https://www.facebook.com/checkpoint/") === -1) return Promise.resolve(res);
+  if (url.indexOf("601051028565049") === -1) return Promise.resolve(res);
+
+  var body = res.body || "";
+  var uid = getAppStateUserID(appState, jar);
+  var fbDtsg = utils.getFrom(body, '["DTSGInitData",[],{"token":"', '","');
+  var jazoest = utils.getFrom(body, "jazoest=", '",');
+  var lsd = utils.getFrom(body, '["LSD",[],{"token":"', '"}');
+
+  if (!fbDtsg || !jazoest || !lsd || !uid) {
+    log.warn("login", "Automated behavior checkpoint detected, but required form tokens were missing.");
+    return Promise.resolve(res);
+  }
+
+  log.warn("login", "Automated behavior checkpoint detected. Attempting to dismiss it for account " + uid + ".");
+
+  return utils
+    .post("https://www.facebook.com/api/graphql/", jar, {
+      av: uid,
+      fb_api_caller_class: "RelayModern",
+      fb_api_req_friendly_name: "FBScrapingWarningMutation",
+      variables: JSON.stringify({}),
+      server_timestamps: true,
+      doc_id: 6339492849481770,
+      fb_dtsg: fbDtsg,
+      jazoest: jazoest,
+      lsd: lsd
+    }, globalOptions)
+    .then(utils.saveCookies(jar))
+    .then(function (dismissRes) {
+      log.warn("login", "Automated behavior checkpoint dismissed. Continuing login.");
+      return dismissRes;
+    });
+}
+
+function getNextPhMidnightDelayMs() {
+  var now = new Date();
+  var nowUtcMs = now.getTime() + now.getTimezoneOffset() * 60 * 1000;
+  var phOffsetMs = 8 * 60 * 60 * 1000;
+  var phNow = new Date(nowUtcMs + phOffsetMs);
+  var nextPhMidnightUtcMs = Date.UTC(
+    phNow.getUTCFullYear(),
+    phNow.getUTCMonth(),
+    phNow.getUTCDate() + 1,
+    0,
+    0,
+    0,
+    0
+  ) - phOffsetMs;
+
+  return Math.max(1000, nextPhMidnightUtcMs - now.getTime());
+}
+
+function scheduleFbDtsgRefresh(api, ctx) {
+  if (ctx.refreshDtsgTimer) {
+    clearTimeout(ctx.refreshDtsgTimer);
+  }
+
+  if (typeof api.refreshFb_dtsg !== "function") {
+    return;
+  }
+
+  function queueNextRefresh() {
+    ctx.refreshDtsgTimer = setTimeout(function () {
+      api.refreshFb_dtsg(function () {});
+      queueNextRefresh();
+    }, getNextPhMidnightDelayMs());
+
+    if (ctx.refreshDtsgTimer && typeof ctx.refreshDtsgTimer.unref === "function") {
+      ctx.refreshDtsgTimer.unref();
+    }
+  }
+
+  queueNextRefresh();
 }
 
 function setOptions(globalOptions, options) {
@@ -109,18 +287,17 @@ function setOptions(globalOptions, options) {
       case 'emitReady':
         globalOptions.emitReady = Boolean(options.emitReady);
         break;
-      case 'enableE2EE':
-        globalOptions.enableE2EE = Boolean(options.enableE2EE);
+      case 'randomUserAgent':
+        globalOptions.randomUserAgent = Boolean(options.randomUserAgent);
+        if (globalOptions.randomUserAgent) {
+          globalOptions.userAgent = utils.randomUserAgent();
+          log.warn("setOptions", "Random userAgent enabled: " + globalOptions.userAgent);
+        }
         break;
-      case 'e2eeMemoryOnly':
-        globalOptions.e2eeMemoryOnly = Boolean(options.e2eeMemoryOnly);
+      case 'bypassRegion':
+        globalOptions.bypassRegion = options.bypassRegion ? String(options.bypassRegion).toUpperCase() : null;
         break;
-      case 'e2eeDevicePath':
-        globalOptions.e2eeDevicePath = options.e2eeDevicePath;
-        break;
-      case 'e2eeDeviceData':
-        globalOptions.e2eeDeviceData = options.e2eeDeviceData;
-        break;
+
       default:
         log.warn("setOptions", "Unrecognized option given to setOptions: " + key);
         break;
@@ -131,6 +308,8 @@ function setOptions(globalOptions, options) {
 function buildAPI(globalOptions, html, jar) {
   var fbDtsgMatch = html.match(/DTSGInitialData.*?token":"(.*?)"/);
   var initialFbDtsg = fbDtsgMatch ? fbDtsgMatch[1] : null;
+  var lsdMatch = html.match(/\["LSD",\[\],\{"token":"(.*?)"\}/);
+  var initialLsd = lsdMatch ? lsdMatch[1] : null;
   var initialTtstamp = null;
   if (initialFbDtsg) {
     initialTtstamp = "2";
@@ -206,6 +385,16 @@ function buildAPI(globalOptions, html, jar) {
     }
   }
 
+  if (globalOptions.bypassRegion) {
+    region = String(globalOptions.bypassRegion).toUpperCase();
+    mqttEndpoint = "wss://edge-chat.facebook.com/chat?region=" + region.toLowerCase();
+    log.warn("login", "Bypassing MQTT region with: " + region);
+  } else if (!region) {
+    region = ["PRN", "PNB", "VLL", "HKG", "SIN", "FTW", "ASH"][Math.floor(Math.random() * 7)];
+    mqttEndpoint = "wss://edge-chat.facebook.com/chat?region=" + region.toLowerCase();
+    log.warn("login", "Cannot detect MQTT region. Falling back to: " + region);
+  }
+
   // All data available to api functions
   var ctx = {
     userID: userID,
@@ -225,8 +414,8 @@ function buildAPI(globalOptions, html, jar) {
     wsTaskNumber: 0,
     fb_dtsg: initialFbDtsg,
     ttstamp: initialTtstamp,
-    _e2eeBridge: null,
-    _e2eeDeviceData: globalOptions.e2eeDeviceData || null
+    lsd: initialLsd,
+
   };
 
   var api = {
@@ -235,20 +424,7 @@ function buildAPI(globalOptions, html, jar) {
       return utils.getAppState(jar);
     },
     isFullyReady: function isFullyReady() {
-      var socketReady = !!(ctx.mqttClient && ctx.mqttClient.connected);
-      if (!socketReady) {
-        return false;
-      }
-
-      if (ctx.globalOptions.enableE2EE === false) {
-        return true;
-      }
-
-      if (!ctx._e2eeBridge || typeof ctx._e2eeBridge.isFullyReady !== "function") {
-        return false;
-      }
-
-      return ctx._e2eeBridge.isFullyReady();
+      return !!(ctx.mqttClient && ctx.mqttClient.connected);
     }
   };
 
@@ -256,13 +432,13 @@ function buildAPI(globalOptions, html, jar) {
     api["htmlData"] = noMqttData;
   }
 
-  var apiFuncNames = Object.keys(controllers);
+  var apiFuncNames = Object.keys(actions);
 
   var defaultFuncs = utils.makeDefaults(html, userID, ctx);
 
   // Load all api functions in a loop
   apiFuncNames.map(function (v) {
-    api[v] = controllers[v](defaultFuncs, api, ctx);
+    api[v] = actions[v](defaultFuncs, api, ctx);
   });
 
   //Removing original `listen` that uses pull.
@@ -274,18 +450,8 @@ function buildAPI(globalOptions, html, jar) {
   if (typeof api.setMessageReactionMqtt !== "function") {
     api.setMessageReactionMqtt = api.setMessageReaction;
   }
-  // Keep fb_dtsg/jazoest fresh to reduce long-session send failures.
-  if (ctx.refreshDtsgTimer) {
-    clearInterval(ctx.refreshDtsgTimer);
-  }
-  if (typeof api.refreshFb_dtsg === "function") {
-    ctx.refreshDtsgTimer = setInterval(function () {
-      api.refreshFb_dtsg(function () {});
-    }, 2 * 60 * 60 * 1000);
-    if (ctx.refreshDtsgTimer && typeof ctx.refreshDtsgTimer.unref === "function") {
-      ctx.refreshDtsgTimer.unref();
-    }
-  }
+  // Keep fb_dtsg/jazoest fresh by refreshing at the next PH midnight (GMT+8).
+  scheduleFbDtsgRefresh(api, ctx);
 
   return [ctx, defaultFuncs, api];
 }
@@ -590,11 +756,20 @@ function loginHelper(appState, email, password, globalOptions, callback, prCallb
       }
       return res;
     })
+    .then(function (res) {
+      return bypassAutoBehavior(res, jar, appState, globalOptions);
+    })
+    .then(function (res) {
+      return throwIfLockedOrSuspended(res, appState, jar);
+    })
     .then(function () {
       // ws3 flow stabilizes appstate sessions by loading /home.php before building API.
       return utils
         .get("https://www.facebook.com/home.php", jar, null, globalOptions)
         .then(utils.saveCookies(jar));
+    })
+    .then(function (res) {
+      return throwIfLockedOrSuspended(res, appState, jar);
     })
     .then(function (res) {
       var html = res.body;
@@ -648,10 +823,7 @@ function login(loginData, options, callback) {
     autoMarkDelivery: true,
     autoMarkRead: false,
     autoReconnect: true,
-    enableE2EE: false,
-    e2eeMemoryOnly: true,
-    e2eeDevicePath: undefined,
-    e2eeDeviceData: undefined,
+
     logRecordSize: defaultLogRecordSize,
     online: true,
     emitReady: false,
@@ -681,4 +853,3 @@ function login(loginData, options, callback) {
 }
 
 module.exports = login;
-

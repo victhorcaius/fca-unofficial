@@ -13,6 +13,10 @@ function formatCookie(arr, url) {
 function makeDefaults(html, userID, ctx) {
   var reqCounter = 1;
   var fb_dtsg = parsing.getFrom(html, 'name="fb_dtsg" value="', '"');
+  var lsd = parsing.getFrom(html, '["LSD",[],{"token":"', '"');
+  if (!lsd) {
+    lsd = parsing.getFrom(html, 'name="lsd" value="', '"');
+  }
 
   var ttstamp = "2";
   for (var i = 0; i < fb_dtsg.length; i++) {
@@ -28,7 +32,8 @@ function makeDefaults(html, userID, ctx) {
       __rev: revision,
       __a: 1,
       fb_dtsg: ctx.fb_dtsg ? ctx.fb_dtsg : fb_dtsg,
-      jazoest: ctx.ttstamp ? ctx.ttstamp : ttstamp
+      jazoest: ctx.ttstamp ? ctx.ttstamp : ttstamp,
+      lsd: ctx.lsd ? ctx.lsd : lsd
     };
 
     if (!obj) return newObj;
@@ -98,6 +103,36 @@ function parseAndCheckLogin(ctx, defaultFuncs, retryCount) {
   return function (data) {
     return bluebird.try(function () {
       log.verbose("parseAndCheckLogin", data.body);
+
+      function isMercuryUploadRequest() {
+        var pathname = data && data.request && data.request.uri
+          ? data.request.uri.pathname
+          : "";
+        return typeof pathname === "string" && pathname.indexOf("/ajax/mercury/upload.php") !== -1;
+      }
+
+      function hasUploadMetadata(parsed) {
+        var metadata = parsed && parsed.payload ? parsed.payload.metadata : null;
+        if (Array.isArray(metadata)) return metadata.length > 0;
+        return !!(metadata && typeof metadata === "object" && Object.keys(metadata).length);
+      }
+
+      function tryParseUploadPayloadFromNon200() {
+        if (!isMercuryUploadRequest()) return null;
+        if (!data || typeof data.body !== "string" || data.body.trim() === "") return null;
+
+        try {
+          var parsedUpload = JSON.parse(parsing.makeParsable(data.body));
+          if (parsedUpload && !parsedUpload.error && hasUploadMetadata(parsedUpload)) {
+            return parsedUpload;
+          }
+        } catch (_) {
+          return null;
+        }
+
+        return null;
+      }
+
       if (data.statusCode >= 500 && data.statusCode < 600) {
         if (retryCount >= 5) {
           throw {
@@ -124,8 +159,10 @@ function parseAndCheckLogin(ctx, defaultFuncs, retryCount) {
           "//" +
           data.request.uri.hostname +
           data.request.uri.pathname;
+        var reqHeaders = data.request && data.request.headers ? data.request.headers : {};
+        var reqContentType = reqHeaders["content-type"] || reqHeaders["Content-Type"] || "";
         if (
-          data.request.headers["Content-Type"].split(";")[0] ===
+          String(reqContentType).split(";")[0] ===
           "multipart/form-data"
         ) {
           return bluebird
@@ -148,12 +185,22 @@ function parseAndCheckLogin(ctx, defaultFuncs, retryCount) {
             .then(parseAndCheckLogin(ctx, defaultFuncs, retryCount));
         }
       }
-      if (data.statusCode !== 200)
+      if (data.statusCode !== 200) {
+        var parsedUploadFromNon200 = tryParseUploadPayloadFromNon200();
+        if (parsedUploadFromNon200) {
+          log.warn(
+            "parseAndCheckLogin",
+            "Parsed mercury upload payload from non-200 status " + data.statusCode
+          );
+          return parsedUploadFromNon200;
+        }
+
         throw new Error(
           "parseAndCheckLogin got status code: " +
           data.statusCode +
           ". Bailing out of trying to parse response."
         );
+      }
 
       var res = null;
       try {

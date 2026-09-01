@@ -6,7 +6,7 @@ var mqtt = require('mqtt');
 var websocket = require('websocket-stream');
 var HttpsProxyAgent = require('https-proxy-agent');
 const EventEmitter = require('events');
-var e2eeBridge = require("../e2ee/bridge");
+
 var identity = function () { };
 var form = {};
 var getSeqID = function () { };
@@ -49,15 +49,8 @@ function listenMqtt(defaultFuncs, api, ctx, globalCallback) {
 	function maybeEmitFullyReady() {
 		if (ctx._fullyReadyEmitted) return;
 		if (!ctx._socketReady) return;
-
-		var needsE2EE = ctx.globalOptions.enableE2EE !== false;
-		if (needsE2EE && !ctx._e2eeFullyReady) return;
-
 		ctx._fullyReadyEmitted = true;
-		globalCallback(null, {
-			type: "fullyReady",
-			isE2EE: needsE2EE
-		});
+		globalCallback(null, { type: "fullyReady" });
 	}
 
 	function scheduleReconnect() {
@@ -85,16 +78,17 @@ function listenMqtt(defaultFuncs, api, ctx, globalCallback) {
 	//Don't really know what this does but I think it's for the active state?
 	//TODO: Move to ctx when implemented
 	var chatOn = ctx.globalOptions.online;
-	var foreground = false;
+	var foreground = true;
 
 	var sessionID = Math.floor(Math.random() * 9007199254740991) + 1;
-	var username = {u: ctx.userID,s: sessionID,chat_on: chatOn,fg: foreground,d: utils.getGUID(),ct: "websocket",aid: "219994525426954", mqtt_sid: "",cp: 3,ecp: 10,st: [],pm: [],dc: "",no_auto_fg: true,gas: null,pack: []};
+	var clientID = utils.getGUID();
+	var username = {u: ctx.userID,s: sessionID,chat_on: chatOn,fg: foreground,d: clientID,ct: "websocket",aid: "219994525426954", mqtt_sid: "",cp: 3,ecp: 10,st: [],pm: [],dc: "",no_auto_fg: true,gas: null,pack: []};
 	var cookies = ctx.jar.getCookies('https://www.facebook.com').join("; ");
 
 	var host;
-	if (ctx.mqttEndpoint) host = `${ctx.mqttEndpoint}&sid=${sessionID}`;
-	else if (ctx.region) host = `wss://edge-chat.facebook.com/chat?region=${ctx.region.toLocaleLowerCase()}&sid=${sessionID}`;
-	else host = `wss://edge-chat.facebook.com/chat?sid=${sessionID}`;
+	if (ctx.mqttEndpoint) host = `${ctx.mqttEndpoint}&sid=${sessionID}&cid=${clientID}`;
+	else if (ctx.region) host = `wss://edge-chat.facebook.com/chat?region=${ctx.region.toLocaleLowerCase()}&sid=${sessionID}&cid=${clientID}`;
+	else host = `wss://edge-chat.facebook.com/chat?sid=${sessionID}&cid=${clientID}`;
    
 	var options = {
 		clientId: "mqttwsclient",
@@ -179,6 +173,38 @@ function listenMqtt(defaultFuncs, api, ctx, globalCallback) {
 				globalCallback(null, { type: "ready", error: null });
 			}
 			maybeEmitFullyReady();
+
+			// Fake telemetry to mimic real browser
+			if (!ctx.screenTimeSent) {
+				ctx.screenTimeSent = true;
+				var form = {
+					"av": ctx.globalOptions.pageID,
+					"queries": JSON.stringify({
+						"o0": {
+							"doc_id": "30984609371137911",
+							"query_params": {}
+						},
+						"o1": {
+							"doc_id": "9691594727545032",
+							"query_params": {}
+						},
+						"o2": {
+							"doc_id": "9714526941947209",
+							"query_params": {}
+						}
+					}),
+					"batch_name": "MessengerGraphQLTelemetryBatch"
+				};
+				defaultFuncs
+					.post("https://www.facebook.com/api/graphqlbatch/", ctx.jar, form)
+					.then(function() {
+						log.info("listenMqtt", "ScreenTime and Badge telemetry queries sent.");
+					})
+					.catch(function(err) {
+						log.error("listenMqtt", "Failed to send telemetry queries: " + err);
+					});
+			}
+
 			delete ctx.tmsWait;
 		};
 	});
@@ -246,6 +272,125 @@ function listenMqtt(defaultFuncs, api, ctx, globalCallback) {
 	});
 }
 
+function parseArrayJSON(value) {
+	if (Array.isArray(value)) return value;
+	if (typeof value !== "string") return [];
+	try {
+		var parsed = JSON.parse(value);
+		return Array.isArray(parsed) ? parsed : [];
+	} catch (_err) {
+		return [];
+	}
+}
+
+function splitCsv(value) {
+	if (Array.isArray(value)) return value;
+	if (typeof value !== "string") return [];
+	return value
+		.split(",")
+		.map(function (v) { return v.trim(); })
+		.filter(function (v) { return v !== ""; });
+}
+
+function addMentionsFromTriples(target, ids, offsets, lengths, body) {
+	var max = Math.min(ids.length, offsets.length, lengths.length);
+	for (var i = 0; i < max; i++) {
+		var id = String(ids[i] || "").trim();
+		if (!id) continue;
+
+		var offset = parseInt(offsets[i], 10);
+		var length = parseInt(lengths[i], 10);
+		if (isNaN(offset) || isNaN(length) || length <= 0) continue;
+
+		target[id] = body.substring(offset, offset + length);
+	}
+}
+
+function readFbTypedValue(node) {
+	if (!node || typeof node !== "object") return undefined;
+	if (node.asString != null) return node.asString;
+	if (node.asLong != null) return node.asLong;
+	if (node.asInt != null) return node.asInt;
+	return undefined;
+}
+
+function getGbMentionMapFromMetadata(metadata) {
+	if (!metadata || typeof metadata !== "object") return null;
+	var d = metadata.data || {};
+	var nested = d.data || {};
+	var gb = nested.Gb || d.Gb;
+	var map = gb && gb.asMap && gb.asMap.data;
+	return map && typeof map === "object" ? map : null;
+}
+
+function extractMentions(message) {
+	var body = (message && message.body) || "";
+	var mentions = {};
+
+	var mdata = parseArrayJSON(message && message.data && message.data.prng);
+	addMentionsFromTriples(
+		mentions,
+		mdata.map(function (u) { return u && u.i; }),
+		mdata.map(function (u) { return u && u.o; }),
+		mdata.map(function (u) { return u && u.l; }),
+		body
+	);
+
+	if (Object.keys(mentions).length === 0) {
+		var d = (message && message.data) || {};
+		addMentionsFromTriples(
+			mentions,
+			splitCsv(d.mention_ids || d.mentions_ids || d.mentionIds || (message && (message.mention_ids || message.mentions_ids || message.mentionIds))),
+			splitCsv(d.mention_offsets || d.mentions_offsets || d.mentionOffsets || (message && (message.mention_offsets || message.mentions_offsets || message.mentionOffsets))),
+			splitCsv(d.mention_lengths || d.mentions_lengths || d.mentionLengths || (message && (message.mention_lengths || message.mentions_lengths || message.mentionLengths))),
+			body
+		);
+	}
+
+	if (Object.keys(mentions).length === 0) {
+		var d2 = (message && message.data) || {};
+		var ranges = [];
+		if (Array.isArray(message && message.ranges)) ranges = message.ranges;
+		else if (Array.isArray(d2.ranges)) ranges = d2.ranges;
+		else if (Array.isArray(message && message.profileRanges)) ranges = message.profileRanges;
+		else if (Array.isArray(d2.profileRanges)) ranges = d2.profileRanges;
+		else if (Array.isArray(d2.profile_ranges)) ranges = d2.profile_ranges;
+		else if (typeof d2.ranges === "string") ranges = parseArrayJSON(d2.ranges);
+
+		ranges.forEach(function (r) {
+			var id =
+				(r && r.entity && r.entity.id) ||
+				(r && r.entity_fbid) ||
+				(r && r.id) ||
+				(r && r.i);
+			var offset = (r && (r.offset != null ? r.offset : r.o));
+			var length = (r && (r.length != null ? r.length : r.l));
+			addMentionsFromTriples(mentions, [id], [offset], [length], body);
+		});
+	}
+
+	if (Object.keys(mentions).length === 0) {
+		var gbMap = getGbMentionMapFromMetadata(message && message.messageMetadata);
+		if (gbMap) {
+			var ids = [];
+			var offsets = [];
+			var lengths = [];
+
+			Object.keys(gbMap).forEach(function (k) {
+				var row = gbMap[k] && gbMap[k].asMap && gbMap[k].asMap.data;
+				if (!row) return;
+				ids.push(readFbTypedValue(row.id));
+				offsets.push(readFbTypedValue(row.offset));
+				lengths.push(readFbTypedValue(row.length));
+			});
+
+			addMentionsFromTriples(mentions, ids, offsets, lengths, body);
+		}
+	}
+
+	return mentions;
+}
+
 function parseDelta(defaultFuncs, api, ctx, globalCallback, v) {
 	if (v.delta.class == "NewMessage") {
 		//Not tested for pages
@@ -308,20 +453,7 @@ function parseDelta(defaultFuncs, api, ctx, globalCallback, v) {
 						});
 					})();
 				} else if (delta.deltaMessageReply) {
-					//Mention block - #1
-					var mdata =
-						delta.deltaMessageReply.message === undefined ? [] :
-							delta.deltaMessageReply.message.data === undefined ? [] :
-								delta.deltaMessageReply.message.data.prng === undefined ? [] :
-									JSON.parse(delta.deltaMessageReply.message.data.prng);
-					var m_id = mdata.map(u => u.i);
-					var m_offset = mdata.map(u => u.o);
-					var m_length = mdata.map(u => u.l);
-
-					var mentions = {};
-
-					for (var i = 0; i < m_id.length; i++) mentions[m_id[i]] = (delta.deltaMessageReply.message.body || "").substring(m_offset[i], m_offset[i] + m_length[i]);
-					//Mention block - 1#
+					var mentions = extractMentions(delta.deltaMessageReply.message);
 					var callbackToReturn = {
 						type: "message_reply",
 						threadID: (delta.deltaMessageReply.message.messageMetadata.threadKey.threadFbId ? delta.deltaMessageReply.message.messageMetadata.threadKey.threadFbId : delta.deltaMessageReply.message.messageMetadata.threadKey.otherUserFbId).toString(),
@@ -351,20 +483,7 @@ function parseDelta(defaultFuncs, api, ctx, globalCallback, v) {
 					};
 
 					if (delta.deltaMessageReply.repliedToMessage) {
-						//Mention block - #2
-						mdata =
-							delta.deltaMessageReply.repliedToMessage === undefined ? [] :
-								delta.deltaMessageReply.repliedToMessage.data === undefined ? [] :
-									delta.deltaMessageReply.repliedToMessage.data.prng === undefined ? [] :
-										JSON.parse(delta.deltaMessageReply.repliedToMessage.data.prng);
-						m_id = mdata.map(u => u.i);
-						m_offset = mdata.map(u => u.o);
-						m_length = mdata.map(u => u.l);
-
-						var rmentions = {};
-
-						for (var i = 0; i < m_id.length; i++) rmentions[m_id[i]] = (delta.deltaMessageReply.repliedToMessage.body || "").substring(m_offset[i], m_offset[i] + m_length[i]);
-						//Mention block - 2#
+						var rmentions = extractMentions(delta.deltaMessageReply.repliedToMessage);
 						callbackToReturn.messageReply = {
 							threadID: (delta.deltaMessageReply.repliedToMessage.messageMetadata.threadKey.threadFbId ? delta.deltaMessageReply.repliedToMessage.messageMetadata.threadKey.threadFbId : delta.deltaMessageReply.repliedToMessage.messageMetadata.threadKey.otherUserFbId).toString(),
 							messageID: delta.deltaMessageReply.repliedToMessage.messageMetadata.messageId,
@@ -645,31 +764,6 @@ function markDelivery(ctx, api, threadID, messageID) {
 	}
 }
 
-function startE2EEBridgeIfEnabled(ctx, globalCallback) {
-	if (ctx.globalOptions.enableE2EE === false) {
-		return;
-	}
-
-	e2eeBridge
-		.createBridge(ctx)
-		.connect(globalCallback)
-		.catch(function (err) {
-			log.error("listenMqtt:e2ee", err);
-			if (typeof globalCallback === "function") {
-				globalCallback(err);
-			}
-		});
-}
-
-function stopE2EEBridge(ctx) {
-	if (!ctx._e2eeBridge) {
-		return Promise.resolve();
-	}
-
-	return ctx._e2eeBridge.disconnect().catch(function (err) {
-		log.error("listenMqtt:e2ee", err);
-	});
-}
 
 module.exports = function (defaultFuncs, api, ctx) {
 	var globalCallback = identity;
@@ -702,7 +796,6 @@ module.exports = function (defaultFuncs, api, ctx) {
 				callback = callback || (() => { });
 				globalCallback = identity;
 				ctx._stopListening = true;
-				stopE2EEBridge(ctx);
 				if (ctx.mqttClient) {
 					ctx.mqttClient.unsubscribe("/webrtc");
 					ctx.mqttClient.unsubscribe("/rtc_multi");
@@ -717,29 +810,12 @@ module.exports = function (defaultFuncs, api, ctx) {
 		}
 
 		var msgEmitter = new MessageEmitter();
-		globalCallback = (callback || function (error, message) {
+		var rawCallback = (callback || function (error, message) {
 			if (error) return msgEmitter.emit("error", error);
 			msgEmitter.emit("message", message);
 		});
 
-		var rawCallback = globalCallback;
 		globalCallback = function (error, message) {
-			if (!error && message && message.type === "e2ee_fully_ready") {
-				ctx._e2eeFullyReady = true;
-				if (ctx._socketReady && !ctx._fullyReadyEmitted) {
-					ctx._fullyReadyEmitted = true;
-					rawCallback(null, {
-						type: "fullyReady",
-						isE2EE: true
-					});
-				}
-			}
-
-			if (!error && message && message.type === "e2ee_disconnected") {
-				ctx._e2eeFullyReady = false;
-				ctx._fullyReadyEmitted = false;
-			}
-
 			return rawCallback(error, message);
 		};
 
@@ -748,7 +824,6 @@ module.exports = function (defaultFuncs, api, ctx) {
 		ctx.syncToken = undefined;
 		ctx.t_mqttCalled = false;
 		ctx._socketReady = false;
-		ctx._e2eeFullyReady = ctx.globalOptions.enableE2EE === false;
 		ctx._fullyReadyEmitted = false;
 
 		//Same request as getThreadList
@@ -770,7 +845,6 @@ module.exports = function (defaultFuncs, api, ctx) {
 
 		if (!ctx.firstListen || !ctx.lastSeqId) getSeqID();
 		else listenMqtt(defaultFuncs, api, ctx, globalCallback);
-		startE2EEBridgeIfEnabled(ctx, globalCallback);
 		ctx.firstListen = false;
 		return msgEmitter;
 	};
